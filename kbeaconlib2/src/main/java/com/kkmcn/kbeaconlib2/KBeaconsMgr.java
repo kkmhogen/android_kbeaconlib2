@@ -1,9 +1,11 @@
 package com.kkmcn.kbeaconlib2;
+import android.annotation.TargetApi;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
+import android.bluetooth.le.ScanFilter;
 import android.bluetooth.le.ScanRecord;
 import android.bluetooth.le.ScanResult;
 import android.bluetooth.le.ScanSettings;
@@ -11,12 +13,14 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
 
 import com.kkmcn.kbeaconlib2.KBAdvPackage.KBAdvType;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,7 +46,7 @@ public class KBeaconsMgr {
 
     public KBeaconMgrDelegate delegate;
 
-    private int scanMode;
+    private ScanSettings.Builder scanSetting = null;
 
     private String scanNameFilter;
     private int advTypeFilter;
@@ -209,10 +213,57 @@ public class KBeaconsMgr {
 
     public void setScanMode(int nScanMode)
     {
+        int scanMode = SCAN_MODE_BALANCED;
         if (nScanMode == SCAN_MODE_BALANCED || nScanMode == SCAN_MODE_LOW_LATENCY
         || nScanMode == SCAN_MODE_LOW_POWER || nScanMode == SCAN_MODE_OPPORTUNISTIC) {
             scanMode = nScanMode;
         }
+
+        if (scanSetting == null) {
+            scanSetting = new ScanSettings.Builder().setScanMode(scanMode);
+        }
+    }
+
+    //default is legacy scan mode
+    @TargetApi(Build.VERSION_CODES.O)
+    public void setScanLegacyMode(boolean isLegacyMode)
+    {
+        if (!KBUtility.isMOhone()){
+            return;
+        }
+
+        if (scanSetting == null) {
+            scanSetting = new ScanSettings.Builder();
+        }
+        scanSetting.setLegacy(isLegacyMode);
+        if (!isLegacyMode){
+            scanSetting.setPhy(ScanSettings.PHY_LE_ALL_SUPPORTED);
+        }
+    }
+
+    @TargetApi(Build.VERSION_CODES.O)
+    public boolean isLe2MPhySupported()
+    {
+        if (KBUtility.isMOhone()) {
+            return mBluetoothAdapter.isLe2MPhySupported();
+        }else{
+            return false;
+        }
+    }
+
+    @TargetApi(Build.VERSION_CODES.O)
+    public boolean isLeCodedPhySupported()
+    {
+        if (KBUtility.isMOhone()) {
+            return mBluetoothAdapter.isLeCodedPhySupported();
+        }else{
+            return false;
+        }
+    }
+
+    public void setScanSetting(ScanSettings.Builder scanSetting)
+    {
+        this.scanSetting = scanSetting;
     }
 
     public Integer getScanMinRssiFilter()
@@ -248,18 +299,22 @@ public class KBeaconsMgr {
                 mIsScanning = false;
             }
 
-            if (scanMode !=  ScanSettings.SCAN_MODE_BALANCED &&
-                    scanMode != ScanSettings.SCAN_MODE_LOW_LATENCY &&
-                    scanMode != ScanSettings.SCAN_MODE_LOW_POWER &&
-                    scanMode != ScanSettings.SCAN_MODE_OPPORTUNISTIC)
-            {
-                scanMode = ScanSettings.SCAN_MODE_BALANCED;
+            if (this.scanSetting == null){
+                scanSetting = new ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_BALANCED);
             }
 
-            //start scan
-            ScanSettings.Builder setsBuild;
-            setsBuild = new ScanSettings.Builder().setScanMode(scanMode);
-            scaner.startScan(null, setsBuild.build(), mNPhoneCallback);
+            //scan filter
+            List<ScanFilter> filterList = new ArrayList<>(2);
+            ScanFilter.Builder filter1 = new ScanFilter.Builder().setServiceUuid(KBUtility.PARCE_UUID_EDDYSTONE);
+            ScanFilter.Builder filter2 = new ScanFilter.Builder().setServiceUuid(KBUtility.PARCE_UUID_EXT_DATA);
+            byte[] iBeaconFilter = {0x02, 0x15};
+            ScanFilter.Builder filter3 = new ScanFilter.Builder().setManufacturerData(KBUtility.APPLE_MANUFACTURE_ID,
+                    iBeaconFilter);
+            filterList.add(filter1.build());
+            filterList.add(filter2.build());
+            filterList.add(filter3.build());
+
+            scaner.startScan(filterList, scanSetting.build(), mNPhoneCallback);
             mLastScanTick = System.currentTimeMillis();
             mIsScanning = true;
 

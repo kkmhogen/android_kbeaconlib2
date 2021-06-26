@@ -9,8 +9,6 @@ import java.util.HashMap;
 
 
 public class KBAdvPacketHandler {
-    private static final int APPLE_MANUFACTURE_ID = 0x004C;
-    private static final int NORDIC_MANUFACTURE_ID = 0x0059;
     private static final int MIN_EDDY_URL_ADV_LEN = 3;
     private static final int MIN_EDDY_UID_ADV_LEN = 18;
     private static final int MIN_EDDY_TLM_ADV_LEN = 14;
@@ -71,7 +69,7 @@ public class KBAdvPacketHandler {
         boolean bParseDataRslt = false;
 
         if (record.getManufacturerSpecificData() != null) {
-            beaconData = record.getManufacturerSpecificData(APPLE_MANUFACTURE_ID);
+            beaconData = record.getManufacturerSpecificData(KBUtility.APPLE_MANUFACTURE_ID);
             if (beaconData != null) {
                 if (beaconData.length == MIN_IBEACON_ADV_LEN
                         && beaconData[0] == 0x2 && beaconData[1] == 0x15) {

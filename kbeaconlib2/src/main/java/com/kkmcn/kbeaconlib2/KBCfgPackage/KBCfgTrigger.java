@@ -120,7 +120,7 @@ public class KBCfgTrigger extends KBCfgBase {
     //When we set multiple triggers to the same slot broadcast, we can set nAdvChangeMode to 0x01
     // in order to distinguish different triggers based on broadcast content
     //if nAdvChangeMode set to 0x01, the trigger advertisement content of UUID will change by UUID + trigger type.
-    void setTriggerAdvChangeMode(Integer nAdvChangeMode){
+    public void setTriggerAdvChangeMode(Integer nAdvChangeMode){
         triggerAdvChangeMode = nAdvChangeMode;
     }
 

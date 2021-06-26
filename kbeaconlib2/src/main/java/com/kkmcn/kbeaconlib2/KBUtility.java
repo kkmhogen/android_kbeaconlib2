@@ -20,6 +20,9 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 
 public class KBUtility {
+    public static final int APPLE_MANUFACTURE_ID = 0x004C;
+
+    public static final int NORDIC_MANUFACTURE_ID = 0x0059;
 
     public static final ParcelUuid PARCE_UUID_EDDYSTONE = ParcelUuid.fromString("0000FEAA-0000-1000-8000-00805f9b34fb");
 
@@ -128,6 +131,10 @@ public class KBUtility {
 
     public static boolean isMPhone() {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.M;
+    }
+
+    public static boolean isMOhone() {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.O;
     }
 
     public static boolean isHexString(String hexString)
