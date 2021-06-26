@@ -45,10 +45,6 @@ public class KBCfgSensorHT extends KBCfgSensorBase{
         return logEnable;
     }
 
-    public void setLogEnable(Boolean logEnable) {
-        this.logEnable = logEnable;
-    }
-
     public Integer getSensorType()
     {
         return sensorType;
@@ -69,16 +65,26 @@ public class KBCfgSensorHT extends KBCfgSensorBase{
         return humidityChangeThreshold;
     }
 
+    //Enable temperature and humidity Log feature
+    public void setLogEnable(Boolean logEnable) {
+        this.logEnable = logEnable;
+    }
+
+    //Temperature and humidity measure interval, unit is second,
     public void setSensorHtMeasureInterval(Integer nMeasureInterval)
     {
         sensorHtMeasureInterval = nMeasureInterval;
     }
 
+    //Temperature log threshold, unit is 0.1 Celsius,
+    // for example, if nSaveThd = 5, then if abs(current temperature - last saved temperature) > 0.5, then device will save new record
     public void setTemperatureChangeThreshold(Integer nSaveThd)
     {
         temperatureChangeThreshold = nSaveThd;
     }
 
+    //Humidity log threshold, unit is 0.1%
+    //for example, if nSaveThd = 50, then if abs(current humidity - last saved humidity) > 5, then device will save new record
     public void setHumidityChangeThreshold(Integer nSaveThd)
     {
         humidityChangeThreshold = nSaveThd;

@@ -40,20 +40,13 @@ import java.util.UUID;
 public class KBeacon implements KBAuthHandler.KBAuthDelegate{
     private static final String LOG_TAG = "KBeacon";
 
-    //connection state
-    public final static int KBStateDisconnected = 0;
-    public final static int KBStateConnecting = 1;
-    public final static int KBStateDisconnecting = 2;
-    public final static int KBStateConnected = 3;
-
-
     private ConnStateDelegate delegate;
 
     //advertisement
     private String mac;
     private int rssi;
     private String name;
-    private int state; //connection state
+    private KBConnState state; //connection state
 
     //adv and config manager
     private final static int MSG_CONNECT_TIMEOUT = 201;
@@ -145,7 +138,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
     private Integer mToAddedTriggerType = 0;
 
     public interface ConnStateDelegate {
-        void onConnStateChange(KBeacon beacon, int state, int nReason);
+        void onConnStateChange(KBeacon beacon, KBConnState state, int nReason);
     }
 
     public interface NotifyDataDelegate {
@@ -167,6 +160,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
     public KBeacon(String strMacAddress, Context ctx)
     {
         mac = strMacAddress;
+        state = KBConnState.Disconnected;
         mAdvPacketMgr = new KBAdvPacketHandler();
         mCfgMgr = new KBCfgHandler();
         mContext = ctx;
@@ -224,7 +218,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
     }
 
 
-    public int getState()
+    public KBConnState getState()
     {
         return state;
     }
@@ -403,7 +397,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
 
     public boolean isConnected()
     {
-        return state == KBStateConnected;
+        return state == KBConnState.Connected;
     }
 
     public boolean parseAdvPacket(ScanRecord data, int nRssi, String strName)
@@ -431,7 +425,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         try {
             if (!isSupportSensorDataNotification()) {
                 if (callback != null) {
-                    callback.onActionComplete(false, new KBException(KBException.KBEvtCfgBusy, "device not support subscription"));
+                    callback.onActionComplete(false, new KBException(KBErrorCode.CfgNotSupport, "device not support subscription"));
                 }
                 return;
             }
@@ -441,14 +435,14 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
                 if (mActionStatus != ACTION_IDLE)
                 {
                     if (callback != null) {
-                        callback.onActionComplete(false, new KBException(KBException.KBEvtCfgBusy, "device is not in idle"));
+                        callback.onActionComplete(false, new KBException(KBErrorCode.CfgBusy, "Device was busy"));
                     }
                     return;
                 }
-                if (state != KBStateConnected)
+                if (state != KBConnState.Connected)
                 {
                     if (callback != null) {
-                        callback.onActionComplete(false, new KBException(KBException.KBEvtCfgStateError, "device is not in connected"));
+                        callback.onActionComplete(false, new KBException(KBErrorCode.CfgStateError, "Device was disconnected"));
                     }
                     return;
                 }
@@ -462,7 +456,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
                     startNewAction(ACTION_ENABLE_NTF, 3000);
                 }else{
                     if (callback != null) {
-                        callback.onActionComplete(false, new KBException(KBException.KBEvtCfgFailed, "enable notification failed"));
+                        callback.onActionComplete(false, new KBException(KBErrorCode.CfgFailed, "Enable notification failed"));
                     }
                 }
             } else {
@@ -482,7 +476,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         try {
             if (!isSupportSensorDataNotification()) {
                 if (callback != null) {
-                    callback.onActionComplete(false, new KBException(KBException.KBEvtCfgBusy, "device not support subscription"));
+                    callback.onActionComplete(false, new KBException(KBErrorCode.CfgNotSupport, "Device does not support subscription"));
                 }
                 return;
             }
@@ -490,7 +484,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
             if (this.notifyData2ClassMap.get(nTriggerType) == null)
             {
                 if (callback != null) {
-                    callback.onActionComplete(false, new KBException(KBException.KBEvtCfgBusy, "Subscription not found"));
+                    callback.onActionComplete(true, null);
                 }
                 return;
             }
@@ -500,14 +494,14 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
                 if (mActionStatus != ACTION_IDLE)
                 {
                     if (callback != null) {
-                        callback.onActionComplete(false, new KBException(KBException.KBEvtCfgBusy, "device is not in idle"));
+                        callback.onActionComplete(false, new KBException(KBErrorCode.CfgBusy, "Device was busy"));
                     }
                     return;
                 }
-                if (state != KBStateConnected)
+                if (state != KBConnState.Connected)
                 {
                     if (callback != null) {
-                        callback.onActionComplete(false, new KBException(KBException.KBEvtCfgStateError, "device is not in connected"));
+                        callback.onActionComplete(false, new KBException(KBErrorCode.CfgStateError, "Device was disconnected"));
                     }
                     return;
                 }
@@ -572,7 +566,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
 
     public boolean connectEnhanced(String password, int timeout, KBConnPara connPara, ConnStateDelegate connectCallback)
     {
-        if (state == KBStateDisconnected && password.length() <= 16 && password.length() >= 8)
+        if (state == KBConnState.Disconnected && password.length() <= 16 && password.length() >= 8)
         {
             delegate = connectCallback;
 
@@ -580,7 +574,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
             Log.v(LOG_TAG, "start connect to device " + mac);
 
             mPassword = password;
-            state = KBStateConnecting;
+            state = KBConnState.Connecting;
 
             //cancel action timer
             this.cancelActionTimer();
@@ -596,7 +590,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
 
             //notify connecting
             if (delegate != null) {
-                this.delegate.onConnStateChange(this, KBStateConnecting, 0);
+                this.delegate.onConnStateChange(this, KBConnState.Connecting, 0);
             }
             return true;
         }
@@ -662,8 +656,8 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
             if (mReadCfgCallback != null){
                 ReadConfigCallback tempCallback = mReadCfgCallback;
                 mReadCfgCallback = null;
-                tempCallback.onReadComplete(false, null, new KBException(KBException.KBEvtCfgTimeout,
-                        "read configuration message timeout"));
+                tempCallback.onReadComplete(false, null, new KBException(KBErrorCode.CfgTimeout,
+                        "Read parameters from device timeout"));
             }
         }
         else if (mActionStatus == ACTION_WRITE_CFG)
@@ -673,8 +667,8 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
             {
                 ActionCallback tmpAction = mWriteCfgCallback;
                 mWriteCfgCallback = null;
-                tmpAction.onActionComplete(false, new KBException(KBException.KBEvtCfgTimeout,
-                        "write configuration msg timeout"));
+                tmpAction.onActionComplete(false, new KBException(KBErrorCode.CfgTimeout,
+                        "Write parameters to device timeout"));
             }
         }
         else if (mActionStatus == ACTION_WRITE_CMD)
@@ -684,8 +678,8 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
             {
                 ActionCallback tmpAction = mWriteCfgCallback;
                 mWriteCfgCallback = null;
-                tmpAction.onActionComplete(false, new KBException(KBException.KBEvtCfgTimeout,
-                        "write configuration msg timeout"));
+                tmpAction.onActionComplete(false, new KBException(KBErrorCode.CfgTimeout,
+                        "Write command to device timeout"));
             }
         }
         else if (mActionStatus == ACTION_READ_SENSOR)
@@ -695,8 +689,8 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
             {
                 ReadSensorCallback tempCallback = mReadSensorCallback;
                 mReadSensorCallback = null;
-                tempCallback.onReadComplete(false, null, new KBException(KBException.KBEvtCfgTimeout,
-                        "write configuration msg timeout"));
+                tempCallback.onReadComplete(false, null, new KBException(KBErrorCode.CfgTimeout,
+                        "Read parameters from device timeout"));
             }
         }
         else if (mActionStatus == ACTION_ENABLE_NTF)
@@ -706,16 +700,16 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
             {
                 ActionCallback tmpAction = mEnableSubscribeNotifyCallback;
                 mEnableSubscribeNotifyCallback = null;
-                tmpAction.onActionComplete(false, new KBException(KBException.KBEvtCfgTimeout,
-                        "write configuration msg timeout"));
+                tmpAction.onActionComplete(false, new KBException(KBErrorCode.CfgTimeout,
+                        "Enable notification timeout"));
             }
         }
     }
 
     public void disconnect()
     {
-        if (state != KBStateDisconnected
-                && state != KBStateDisconnecting) {
+        if (state != KBConnState.Disconnected
+                && state != KBConnState.Disconnecting) {
             this.closeBeacon(KBConnectionEvent.ConnManualDisconnecting);
         }
     }
@@ -724,24 +718,24 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
     {
         if (status == BluetoothGatt.GATT_SUCCESS)
         {
-            if (state == KBStateConnecting && nNewState == BluetoothGatt.STATE_CONNECTED)
+            if (state == KBConnState.Connecting && nNewState == BluetoothGatt.STATE_CONNECTED)
             {
                 mGattConnection.discoverServices();
             }
         }
         else
         {
-            if (state == KBStateDisconnecting)
+            if (state == KBConnState.Disconnecting)
             {
                 clearGattResource(mCloseReason);
 
                 checkClearGattBuffer(status);
             }
-            else if (state == KBStateConnecting || state == KBStateConnected)
+            else if (state == KBConnState.Connecting || state == KBConnState.Connected)
             {
                 if (nNewState == BluetoothGatt.STATE_DISCONNECTED)
                 {
-                    state = KBStateDisconnecting;
+                    state = KBConnState.Disconnecting;
                     clearGattResource(KBConnectionEvent.ConnException);
                     checkClearGattBuffer(status);
                 }
@@ -770,7 +764,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         {
             this.cancelActionTimer();
 
-            if (state == KBStateConnecting) {
+            if (state == KBConnState.Connecting) {
                 //common para
                 int firstReadRoundSubType = 0;
                 int readCfgTypeNum = 0;
@@ -827,10 +821,10 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
 
     private void clearGattResource(int nReason)
     {
-        if (state == KBStateDisconnecting)
+        if (state == KBConnState.Disconnecting)
         {
             Log.v(LOG_TAG, "clear gatt connection resource");
-            state = KBStateDisconnected;
+            state = KBConnState.Disconnected;
             mGattConnection.close();
             if (delegate != null) {
                 delegate.onConnStateChange(this, state, nReason);
@@ -846,9 +840,9 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         mMsgHandler.removeMessages(MSG_CONNECT_TIMEOUT);
         mMsgHandler.removeMessages(MSG_CLOSE_CONNECTION_TIMEOUT);
 
-        if (state == KBStateConnected || state == KBStateConnecting)
+        if (state == KBConnState.Connected || state == KBConnState.Connecting)
         {
-            state = KBStateDisconnecting;
+            state = KBConnState.Disconnecting;
             //cancel connection
             mGattConnection.disconnect();
 
@@ -860,10 +854,10 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         }
         else
         {
-            if (state != KBStateDisconnected)
+            if (state != KBConnState.Disconnected)
             {
                 Log.e(LOG_TAG, "disconnected kbeacon for reason");
-                state = KBStateDisconnected;
+                state = KBConnState.Disconnected;
                 if (delegate != null){
                     delegate.onConnStateChange(this, state, mCloseReason);
                 }
@@ -923,14 +917,14 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         if (mActionStatus != ACTION_IDLE)
         {
             if (callback != null) {
-                callback.onActionComplete(false, new KBException(KBException.KBEvtCfgBusy, "device is not in idle"));
+                callback.onActionComplete(false, new KBException(KBErrorCode.CfgBusy, "Device was busy"));
             }
             return;
         }
-        if (state != KBStateConnected)
+        if (state != KBConnState.Connected)
         {
             if (callback != null) {
-                callback.onActionComplete(false, new KBException(KBException.KBEvtCfgStateError, "device is not in connected"));
+                callback.onActionComplete(false, new KBException(KBErrorCode.CfgStateError, "Device was disconnected"));
             }
             return;
         }
@@ -939,7 +933,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         String strJsonCfgData = KBCfgHandler.cmdParaToJsonString(cmdPara);
         if (strJsonCfgData == null || strJsonCfgData.length() == 0) {
             if (callback != null) {
-                callback.onActionComplete(false, new KBException(KBException.KBEvtCfgInputInvalid, "input command invalid"));
+                callback.onActionComplete(false, new KBException(KBErrorCode.CfgInputInvalid, "Input parameters invalid"));
             }
             return;
         }
@@ -966,13 +960,13 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
     {
         if (mActionStatus != ACTION_IDLE)
         {
-            callback.onReadComplete(false, null, new KBException(KBException.KBEvtCfgBusy, "device is not in idle"));
+            callback.onReadComplete(false, null, new KBException(KBErrorCode.CfgBusy, "Device was busy"));
             return;
         }
-        if (state != KBStateConnected)
+        if (state != KBConnState.Connected)
         {
             if (callback != null) {
-                callback.onReadComplete(false, null, new KBException(KBException.KBEvtCfgStateError, "device is not in connected"));
+                callback.onReadComplete(false, null, new KBException(KBErrorCode.CfgStateError, "Device was disconnected"));
             }
             return;
         }
@@ -984,7 +978,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         else
         {
             if (callback != null) {
-                callback.onReadComplete(false, null, new KBException(KBException.KBEvtCfgInputInvalid, "parameters invalid"));
+                callback.onReadComplete(false, null, new KBException(KBErrorCode.CfgInputInvalid, "Input parameters invalid"));
             }
         }
     }
@@ -1043,14 +1037,14 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         if (mActionStatus != ACTION_IDLE)
         {
             if (callback != null) {
-                callback.onActionComplete(false, new KBException(KBException.KBEvtCfgBusy, "device is not in idle"));
+                callback.onActionComplete(false, new KBException(KBErrorCode.CfgBusy, "Device was busy"));
             }
             return;
         }
-        if (state != KBStateConnected)
+        if (state != KBConnState.Connected)
         {
             if (callback != null) {
-                callback.onActionComplete(false, new KBException(KBException.KBEvtCfgStateError, "device is not in connected"));
+                callback.onActionComplete(false, new KBException(KBErrorCode.CfgStateError, "device is not in connected"));
             }
             return;
         }
@@ -1059,7 +1053,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         if (!mCfgMgr.checkConfigValid(cfgList)){
             Log.e(LOG_TAG, "verify configuration data invalid");
             if (callback != null) {
-                callback.onActionComplete(false, new KBException(KBException.KBEvtCfgStateError, "configrure para invalid"));
+                callback.onActionComplete(false, new KBException(KBErrorCode.CfgInputInvalid, "Input parameters invalid"));
             }
             return;
         }
@@ -1068,7 +1062,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         String strJsonCfgData = KBCfgHandler.objectsToJsonString(cfgList);
         if (strJsonCfgData == null || strJsonCfgData.length() == 0){
             if (callback != null) {
-                callback.onActionComplete(false, new KBException(KBException.KBEvtCfgNoParameters, "no valid paramaters in config object"));
+                callback.onActionComplete(false, new KBException(KBErrorCode.CfgInputInvalid, "Input parameters to json failed"));
             }
             return;
         }
@@ -1089,21 +1083,21 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         if (mActionStatus != ACTION_IDLE)
         {
             if (callback != null) {
-                callback.onReadComplete(false, null, new KBException(KBException.KBEvtCfgBusy, "device is not in idle"));
+                callback.onReadComplete(false, null, new KBException(KBErrorCode.CfgBusy, "Device was busy"));
             }
             return;
         }
-        if (state != KBStateConnected)
+        if (state != KBConnState.Connected)
         {
             if (callback != null) {
-                callback.onReadComplete(false, null, new KBException(KBException.KBEvtCfgStateError, "device is not in connected"));
+                callback.onReadComplete(false, null, new KBException(KBErrorCode.CfgStateError, "Device was disconnected"));
             }
             return;
         }
 
         if (msgReq == null || msgReq.length == 0) {
             if (callback != null) {
-                callback.onReadComplete(false, null, new KBException(KBException.KBEvtCfgInputInvalid, "input command invalid"));
+                callback.onReadComplete(false, null, new KBException(KBErrorCode.CfgInputInvalid, "Input parameters invalid"));
             }
             return;
         }
@@ -1271,9 +1265,9 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
                 if (mWriteCfgCallback != null) {
                     ActionCallback tmpAction = mWriteCfgCallback;
                     mWriteCfgCallback = null;
-                    tmpAction.onActionComplete(false, new KBException(KBException.KBEvtCfgFailed,
+                    tmpAction.onActionComplete(false, new KBException(KBErrorCode.CfgFailed,
                             nAckCause,
-                            "last write action failed"));
+                            "Write parameters to device failed"));
                 }
             }
             else if (ACTION_WRITE_CMD == mActionStatus)
@@ -1283,9 +1277,9 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
                 if (mWriteCmdCallback != null) {
                     ActionCallback tmpAction = mWriteCmdCallback;
                     mWriteCmdCallback = null;
-                    tmpAction.onActionComplete(false, new KBException(KBException.KBEvtCfgFailed,
+                    tmpAction.onActionComplete(false, new KBException(KBErrorCode.CfgFailed,
                             nAckCause,
-                            "last write action failed"));
+                            "Write command to device failed"));
                 }
             }
             else if (ACTION_USR_READ_CFG == mActionStatus) {
@@ -1295,9 +1289,9 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
                 if (mReadCfgCallback != null) {
                     ReadConfigCallback tempCallback = mReadCfgCallback;
                     mReadCfgCallback = null;
-                    tempCallback.onReadComplete(false, null, new KBException(KBException.KBEvtCfgFailed,
+                    tempCallback.onReadComplete(false, null, new KBException(KBErrorCode.CfgFailed,
                             nAckCause,
-                            "last read action failed"));
+                            "Read parameters from device failed"));
                 }
             }
             else if (ACTION_READ_SENSOR == mActionStatus) {
@@ -1308,9 +1302,9 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
                     ReadSensorCallback tempCallback = mReadSensorCallback;
                     mReadSensorCallback = null;
                     Log.v(LOG_TAG, "beacon sensor read execute failed");
-                    tempCallback.onReadComplete(false, null, new KBException(KBException.KBEvtCfgFailed,
+                    tempCallback.onReadComplete(false, null, new KBException(KBErrorCode.CfgFailed,
                             nAckCause,
-                            "last read action failed"));
+                            "Read parameters from device failed"));
                 }
             }
         }
@@ -1484,8 +1478,8 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
                     ReadConfigCallback tempCallback = mReadCfgCallback;
                     mReadCfgCallback = null;
 
-                    tempCallback.onReadComplete(false, null, new KBException(KBException.KBEvtCfgReadNull,
-                            "read data is null"));
+                    tempCallback.onReadComplete(false, null, new KBException(KBErrorCode.CfgReadNull,
+                            "Read parameters and return null"));
                 }
             }
         } else {
@@ -1513,7 +1507,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
                         mMsgHandler.sendEmptyMessageDelayed(MSG_NTF_IND_ENABLE, 100);
                     } else {
                         Log.v(LOG_TAG, "read para complete, connect to device(" + mac + ") success");
-                        state = KBStateConnected;
+                        state = KBConnState.Connected;
                         mMsgHandler.sendEmptyMessageDelayed(MSG_NTF_CONNECT_SUCCESS, 200);
                     }
                 }
@@ -1665,7 +1659,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
                 {
                     if (delegate != null){
                         if (KBeacon.this.isConnected()) {
-                            delegate.onConnStateChange(KBeacon.this, KBStateConnected, KBConnectionEvent.ConnSuccess);
+                            delegate.onConnStateChange(KBeacon.this, KBConnState.Connected, KBConnectionEvent.ConnSuccess);
                         }
                     }
                     break;
@@ -1761,7 +1755,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
                 Log.v(LOG_TAG, "The max mtu size is:" + mtu);
             }
 
-            if (state == KBStateConnecting) {
+            if (state == KBConnState.Connecting) {
                 Message msgCentralEvt = mMsgHandler.obtainMessage(MSG_SYS_CONNECTION_EVT, BluetoothGatt.GATT_SUCCESS, BluetoothProfile.STATE_CONNECTED);
                 mMsgHandler.sendMessageDelayed(msgCentralEvt, 300);  //delay 200ms for next action
             }
@@ -1798,16 +1792,16 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
                 UUID uuid = descriptor.getCharacteristic().getUuid();
                 if (uuid.equals(KBUtility.KB_NTF_CHAR_UUID))
                 {
-                    if (state == KBStateConnecting) {
+                    if (state == KBConnState.Connecting) {
                         mMsgHandler.sendEmptyMessageDelayed(MSG_START_AUTHENTICATION, 100);
                     }
                 }
                 else if (uuid.equals(KBUtility.KB_IND_CHAR_UUID))
                 {
-					if (state == KBStateConnecting) 
+					if (state == KBConnState.Connecting)
 					{
                         Log.v(LOG_TAG, "enable indication success, connection setup complete");
-                        state = KBStateConnected;
+                        state = KBConnState.Connected;
                         mMsgHandler.sendEmptyMessageDelayed(MSG_NTF_CONNECT_SUCCESS, 300);
                     }
 					else

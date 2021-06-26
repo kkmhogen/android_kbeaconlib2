@@ -2,16 +2,12 @@ package com.kkmcn.kbeaconlib2.KBSensorHistoryData;
 
 import com.kkmcn.kbeaconlib2.ByteConvert;
 import com.kkmcn.kbeaconlib2.KBCfgPackage.KBCfgTrigger;
-import com.kkmcn.kbeaconlib2.KBErrorCause;
+import com.kkmcn.kbeaconlib2.KBErrorCode;
 import com.kkmcn.kbeaconlib2.KBException;
 import com.kkmcn.kbeaconlib2.KBeacon;
 
 
 public abstract class KBSensorDataMsgBase extends KBCfgTrigger {
-    public static final int READ_RECORD_REVERSE_ORDER = 1;
-    public static final int READ_RECORD_ORDER = 0;
-    public static final int READ_RECORD_NEW_RECORD = 2;
-
     private static final int MSG_READ_SENSOR_INFO_REQ = 1;
 
     private static final int MSG_READ_SENSOR_INFO_RSP = 1;
@@ -21,8 +17,6 @@ public abstract class KBSensorDataMsgBase extends KBCfgTrigger {
     private static final int MSG_READ_SENSOR_DATA_RSP = 2;
 
     private static final int MSG_CLR_SENSOR_DATA_REQ = 3;
-
-
 
     public static final long INVALID_DATA_RECORD_POS = 4294967295L;
 
@@ -82,7 +76,7 @@ public abstract class KBSensorDataMsgBase extends KBCfgTrigger {
                         readInfoRsp = parseSensorInfoResponse(beacon, 2, readPara);
                     }
                     if (readInfoRsp == null){
-                        error = new KBException(KBErrorCause.KBErrorParseSensorInfoResponseFailed, "parse sensor info response failed");
+                        error = new KBException(KBErrorCode.ParseSensorInfoResponseFailed, "parse sensor info response failed");
                     }else {
                         ret = true;
                     }
@@ -100,8 +94,8 @@ public abstract class KBSensorDataMsgBase extends KBCfgTrigger {
         });
     }
 
-    public void readSensorRecord(final KBeacon beacon, long nReadRcdNo, int nReadOrder, int nMaxRecordNum, final ReadSensorCallback readCallback) {
-        byte[] byMakeReadSensorDataReq = makeReadSensorDataReq(nReadRcdNo, nReadOrder, nMaxRecordNum);
+    public void readSensorRecord(final KBeacon beacon, long nReadRcdNo, int nReadOption, int nMaxRecordNum, final ReadSensorCallback readCallback) {
+        byte[] byMakeReadSensorDataReq = makeReadSensorDataReq(nReadRcdNo, nReadOption, nMaxRecordNum);
         byte[] bySensorDataReq = new byte[byMakeReadSensorDataReq.length + 2];
         System.arraycopy(byMakeReadSensorDataReq, 0, bySensorDataReq, 2, byMakeReadSensorDataReq.length);
         bySensorDataReq[0] = MSG_READ_SENSOR_DATA_REQ;
@@ -131,7 +125,7 @@ public abstract class KBSensorDataMsgBase extends KBCfgTrigger {
                     }
 
                     if (readInfoRsp == null){
-                        error = new KBException(KBErrorCause.KBErrorParseSensorDataResponseFailed, "parse sensor data response failed");
+                        error = new KBException(KBErrorCode.ParseSensorDataResponseFailed, "parse sensor data response failed");
                     }else {
                         ret = true;
                     }

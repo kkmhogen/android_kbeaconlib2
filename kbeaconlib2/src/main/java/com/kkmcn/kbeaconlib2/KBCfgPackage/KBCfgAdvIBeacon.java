@@ -45,39 +45,42 @@ public class KBCfgAdvIBeacon extends KBCfgAdvBase{
         advType = KBAdvType.IBeacon;
     }
 
-    public void setMajorID(Integer nMajorID) throws KBException
+    public boolean setMajorID(Integer nMajorID)
     {
         if (nMajorID >= 0 && nMajorID <= MAX_MAJOR_MINOR_VALUE)
         {
             majorID = nMajorID;
+            return true;
         }
         else
         {
-            throw new KBException(KBException.KBEvtCfgInputInvalid, "majorID invalid");
+            return false;
         }
     }
 
-    public void setMinorID(Integer nMinorID) throws KBException
+    public boolean setMinorID(Integer nMinorID)
     {
         if (nMinorID >= 0 && nMinorID <= MAX_MAJOR_MINOR_VALUE)
         {
             minorID = nMinorID;
+            return true;
         }
         else
         {
-            throw new KBException(KBException.KBEvtCfgInputInvalid, "minorID invalid");
+            return false;
         }
     }
 
-    public void  setUuid(String strUuid) throws KBException
+    public boolean  setUuid(String strUuid)
     {
         if (KBUtility.isUUIDString(strUuid) )
         {
             uuid = strUuid;
+            return true;
         }
         else
         {
-            throw new KBException(KBException.KBEvtCfgInputInvalid, "uuid invalid");
+            return false;
         }
     }
 

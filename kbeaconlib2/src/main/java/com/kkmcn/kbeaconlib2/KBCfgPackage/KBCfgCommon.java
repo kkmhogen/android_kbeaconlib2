@@ -230,27 +230,30 @@ public class KBCfgCommon extends KBCfgBase{
         return sensorArray;
     }
 
-    public void setRefPower1Meters( Integer nRefPower1Meters) throws  KBException {
+    public boolean setRefPower1Meters( Integer nRefPower1Meters) {
         if (nRefPower1Meters < -10 && nRefPower1Meters > -100) {
             refPower1Meters = nRefPower1Meters;
+            return true;
         } else {
-            throw new KBException(KBException.KBEvtCfgInputInvalid, "reference power invalid");
+            return false;
         }
     }
 
-    public void setPassword(String strPwd) throws KBException {
+    public boolean setPassword(String strPwd) {
         if (strPwd.length() >= 8 && strPwd.length() <= 16) {
             password = strPwd;
+            return true;
         } else {
-            throw new KBException(KBException.KBEvtCfgInputInvalid, "password length invalid");
+            return false;
         }
     }
 
-    public void setName(String strName) throws KBException {
+    public boolean setName(String strName)  {
         if (strName.length() <= MAX_NAME_LENGTH) {
             name = strName;
+            return true;
         } else {
-            throw new KBException(KBException.KBEvtCfgInputInvalid, "name length invalid");
+            return false;
         }
     }
 

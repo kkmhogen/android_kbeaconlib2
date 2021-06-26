@@ -59,6 +59,10 @@ public class KBCfgAdvBase extends KBCfgBase{
         return advConnectable;
     }
 
+    public Boolean isAdvTriggerOnly(){
+        return advTriggerOnly;
+    }
+
     public Integer getTxPower(){return txPower;}
 
     public Integer getAdvMode(){return advMode;}
@@ -67,67 +71,64 @@ public class KBCfgAdvBase extends KBCfgBase{
     {
     }
 
-    public Boolean isAdvTriggerOnly(){
-        return advTriggerOnly;
+    //slot index about advertisement
+    public void setSlotIndex(Integer nSlotIndex)
+    {
+        slotIndex = nSlotIndex;
     }
 
+
+    //please reference KBAdvMode for more detail
+    //some device may only support KBAdvMode.Legacy
+    public boolean setAdvMode(Integer nAdvMode)
+    {
+        if (nAdvMode != KBAdvMode.Legacy
+                && nAdvMode != KBAdvMode.LongRange
+                && nAdvMode != KBAdvMode.K2Mbps) {
+            return false;
+        }else{
+            advMode = nAdvMode;
+            return true;
+        }
+    }
+
+    //if enabled, this slot does not broadcast by default, and it only broadcasts when the Trigger event is triggered.
     public void setAdvTriggerOnly(Boolean triggerAdvOnly)
     {
         advTriggerOnly = triggerAdvOnly;
     }
 
-    public void setSlotIndex(Integer nSlotIndex) throws KBException
-    {
-        slotIndex = nSlotIndex;
-    }
-
-    //set adv type
-    /*
-    public void setAdvType(Integer nAdvType) throws KBException
-    {
-        if (nAdvType > KBAdvType.KBAdvTypeMAXValue){
-            throw new KBException(KBException.KBEvtCfgInputInvalid, "adv type invalid");
-        }else{
-            advType = nAdvType;
-        }
-    }
-    */
-
-    //set adv period
-    public void setAdvPeriod(Float nAdvPeriod) throws KBException
+    //set adv period, the unit is ms
+    public boolean setAdvPeriod(Float nAdvPeriod)
     {
         if ((nAdvPeriod <= MAX_ADV_PERIOD && nAdvPeriod >= MIN_ADV_PERIOD)) {
             advPeriod = nAdvPeriod;
+            return true;
         } else {
-            throw new KBException(KBException.KBEvtCfgInputInvalid, "adv period invalid");
+            return false;
         }
     }
 
     //set KBeacon tx power
-    public void setTxPower(Integer nTxPower) throws KBException
+    public boolean setTxPower(Integer nTxPower)
     {
-        if (nTxPower >= KBAdvTxPower.RADIO_TXPOWER_MIN_TXPOWER && nTxPower <= KBAdvTxPower.RADIO_TXPOWER_MAX_TXPOWER) {
+        if (nTxPower >= KBAdvTxPower.RADIO_MIN_TXPOWER && nTxPower <= KBAdvTxPower.RADIO_MAX_TXPOWER) {
             txPower = nTxPower;
+            return true;
         } else {
-            throw new KBException(KBException.KBEvtCfgInputInvalid, "invalid tx power data");
+            return false;
         }
     }
 
+    // Warning: if the app set the KBeacon to un-connectable, the app cannot connect to the device.
+    //When the device enters the unconnectable mode, you can enter it in the following ways:
+    //1. If the Button Trigger is not enabled, you can press the button of the device and the device will enter the connectable broadcast for 30 seconds.
+    //2. When the device is powered on again, the device will enter the connectable broadcast within 30 seconds after it is powered on.
     public void setAdvConnectable(Boolean nConnectable)
     {
         advConnectable = nConnectable;
     }
 
-    public void setAdvMode(Integer nAdvMode) throws  KBException
-    {
-        if (nAdvMode != KBAdvMode.Legacy
-                && nAdvMode != KBAdvMode.LongRange
-                && nAdvMode != KBAdvMode.K2Mbps) {
-            throw new KBException(KBException.KBEvtCfgInputInvalid, "invalid advertise mode");
-        }else{
-            advMode = nAdvMode;
-        }
-    }
 
     public int updateConfig(HashMap<String, Object> dicts) {
         int nUpdateParaNum = super.updateConfig(dicts);

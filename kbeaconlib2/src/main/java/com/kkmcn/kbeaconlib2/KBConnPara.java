@@ -1,18 +1,22 @@
 package com.kkmcn.kbeaconlib2;
 
 public class KBConnPara {
-    public boolean syncUtcTime;
-    public boolean readCommPara;
-    public boolean readSlotPara;
-    public boolean readTriggerPara;
-    public boolean readSensorPara;
+    //sync the UTC time to device while setup connection
+    public boolean syncUtcTime = true;
+
+    //read common parameters while setup connection
+    public boolean readCommPara = true;
+
+    //read slot advertisement parameters while setup connection
+    public boolean readSlotPara = true;
+
+    //read sensor trigger parameters while setup connection
+    public boolean readTriggerPara = true;
+
+    //read sensor parameters while setup connection
+    public boolean readSensorPara = false;
 
     public KBConnPara()
     {
-        syncUtcTime = true;
-        readCommPara = true;
-        readSlotPara = true;
-        readTriggerPara = true;
-        readSensorPara = false;
     }
 }

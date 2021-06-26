@@ -36,23 +36,25 @@ public class KBCfgAdvEddyUID extends KBCfgAdvBase
         return sid;
     }
 
-    public void setNid(String strNid) throws KBException
+    public boolean setNid(String strNid)
     {
         if (strNid.length() == 22 && KBUtility.isHexString(strNid))
         {
             nid = strNid;
+            return true;
         }
         else
         {
-            throw new KBException(KBException.KBEvtCfgInputInvalid, "nid invalid");
+            return false;
         }
     }
 
-    public void setSid(String strSid) throws KBException {
+    public boolean setSid(String strSid)  {
         if (strSid.length() == 14 && KBUtility.isHexString(strSid)) {
             sid = strSid;
+            return true;
         } else {
-            throw new KBException(KBException.KBEvtCfgInputInvalid, "sid invalid");
+            return false;
         }
     }
 

@@ -99,12 +99,15 @@ public class KBCfgHandler {
 
     public final ArrayList<KBCfgTrigger> getSlotTriggerCfgList(int nSlotIndex)
     {
-        ArrayList<KBCfgTrigger> cfgList = new ArrayList<>(2);
+        ArrayList<KBCfgTrigger> cfgList = null;
         for (KBCfgTrigger triggerCfg: kbDeviceCfgTriggerLists)
         {
             Integer triggerSlotIndex = triggerCfg.getTriggerAdvSlot();
             if (triggerSlotIndex != null && triggerSlotIndex == nSlotIndex)
             {
+                if (cfgList == null) {
+                    cfgList = new ArrayList<>(2);
+                }
                 cfgList.add(triggerCfg);
             }
         }
@@ -113,12 +116,15 @@ public class KBCfgHandler {
 
     public final ArrayList<KBCfgAdvBase> getDeviceSlotsCfgByType(int nAdvType)
     {
-        ArrayList<KBCfgAdvBase> cfgList = new ArrayList<>(2);
+        ArrayList<KBCfgAdvBase> cfgList = null;
         for (KBCfgAdvBase slotCfg: kbDeviceCfgAdvSlotLists)
         {
             Integer advType = slotCfg.getAdvType();
             if (advType != null && advType == nAdvType)
             {
+                if (cfgList == null){
+                    cfgList = new ArrayList<>(2);
+                }
                 cfgList.add(slotCfg);
             }
         }

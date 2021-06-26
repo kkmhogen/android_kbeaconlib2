@@ -24,16 +24,17 @@ public class KBCfgAdvEddyURL extends KBCfgAdvBase{
         return url;
     }
 
-    public void setUrl(String  strUrl) throws KBException
+    public boolean setUrl(String  strUrl)
     {
         strUrl = strUrl.replace(" ", "");
         if (strUrl.length() >= 3)
         {
             url = strUrl;
+            return true;
         }
         else
         {
-            throw new KBException(KBException.KBEvtCfgInputInvalid,"url invalid");
+            return false;
         }
     }
 

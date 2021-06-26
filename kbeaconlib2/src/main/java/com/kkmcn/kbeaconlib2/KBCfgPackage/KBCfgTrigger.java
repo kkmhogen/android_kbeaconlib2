@@ -99,42 +99,54 @@ public class KBCfgTrigger extends KBCfgBase {
         this.triggerType = triggerType;
     }
 
-    public void setTriggerAction(Integer nTriggerAction) throws KBException{
+    //trigger No.
+    public void setTriggerIndex(Integer triggerIndex) {
+        this.triggerIndex = triggerIndex;
+    }
+
+    //trigger action, it can be advertisement, vibration, report to app. ,etc;
+    public boolean setTriggerAction(Integer nTriggerAction){
         int nTriggerActionMask = KBTriggerAction.ActionOff | KBTriggerAction.Advertisement
                 | KBTriggerAction.Alert | KBTriggerAction.Record
                 | KBTriggerAction.Vibration | KBTriggerAction.Report2App;
         if (nTriggerAction == 0 || (nTriggerAction & nTriggerActionMask) > 0) {
             this.triggerAction = nTriggerAction;
+            return true;
         }else{
-            throw new KBException(KBException.KBEvtCfgInputInvalid, "trigger action invalid");
+            return false;
         }
     }
 
-    public void setTriggerAdvChangeMode(Integer nAdvChangeMode){
+    //When we set multiple triggers to the same slot broadcast, we can set nAdvChangeMode to 0x01
+    // in order to distinguish different triggers based on broadcast content
+    //if nAdvChangeMode set to 0x01, the trigger advertisement content of UUID will change by UUID + trigger type.
+    void setTriggerAdvChangeMode(Integer nAdvChangeMode){
         triggerAdvChangeMode = nAdvChangeMode;
     }
 
-    public void setTriggerIndex(Integer triggerIndex) {
-        this.triggerIndex = triggerIndex;
-    }
-
-    public void setTriggerAdvSlot(Integer triggerSlot) throws KBException {
+    //The broadcast slot when the trigger occurs
+    public void setTriggerAdvSlot(Integer triggerSlot) {
         this.triggerAdvSlot = triggerSlot;
     }
 
+    /*Trigger parameters : different trigger types have different corresponding parameter ranges,
+      For Motion Trigger: This parameter indicates the sensitivity of sensor detection, the range is 2~126, unit is 16mg
+      For Humidity trigger: This parameter indicates the humidity threshold. unit is 1%
+      For Temperature trigger: This parameter indicates the temperature threshold. unit is 1 Celsius
+     */
     public void setTriggerPara(Integer triggerPara) {
         this.triggerPara = triggerPara;
     }
 
-    public void setTriggerAdvTime(Integer triggerAdvTime) throws KBException{
+    //Trigger advertisement duration
+    public boolean setTriggerAdvTime(Integer triggerAdvTime) {
         if (triggerAdvTime >= MIN_TRIGGER_ADV_TIME && triggerAdvTime <= MAX_TRIGGER_ADV_TIME) {
             this.triggerAdvTime = triggerAdvTime;
+            return true;
         }else{
-            throw new KBException(KBException.KBEvtCfgInputInvalid, "trigger adv time invalid");
+            return false;
         }
     }
-
-
 
     public int updateConfig(HashMap<String, Object> dicts)
     {
