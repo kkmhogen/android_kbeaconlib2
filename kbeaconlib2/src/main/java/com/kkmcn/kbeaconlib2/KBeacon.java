@@ -182,19 +182,6 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         mBleDevice = bleDevice;
     }
 
-    //get all advertisment
-    public KBAdvPacketBase[] allAdvPackets()
-    {
-        return mAdvPacketMgr.advPackets();
-    }
-
-    //get specified advertisement packet
-    public KBAdvPacketBase getAdvPacketByType(int nAdvType)
-    {
-        return mAdvPacketMgr.getAdvPacket(nAdvType);
-    }
-
-
     //get mac address
     public String getMac()
     {
@@ -264,6 +251,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         }
     }
 
+    //firmware version
     public String version()
     {
         KBCfgCommon commCfg = (KBCfgCommon)mCfgMgr.getCfgComm();
@@ -294,12 +282,97 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         }
     }
 
+    //get all scanned advertisement packets
+    public KBAdvPacketBase[] allAdvPackets()
+    {
+        return mAdvPacketMgr.advPackets();
+    }
+
+    //get specified advertisement packet that scanned
+    public KBAdvPacketBase getAdvPacketByType(int nAdvType)
+    {
+        return mAdvPacketMgr.getAdvPacket(nAdvType);
+    }
+
+    //remove all scanned packet
+    public void removeAdvPacket()
+    {
+        this.mAdvPacketMgr.removeAdvPacket();
+    }
+
+    //connect to device with default parameters
+    //When the app is connected to the KBeacon device, the app can specify which the configuration parameters to be read,
+    //the app will read common parameters, advertisement parameters, trigger parameters by default
+    public boolean connect(String password, int timeout, ConnStateDelegate connectCallback)
+    {
+        KBConnPara connPara = new KBConnPara();
+        return connectEnhanced(password, timeout, connPara, connectCallback);
+    }
+
+    //connect to device with specified parameters
+    //When the app is connected to the KBeacon device, the app can specify which the configuration parameters to be read,
+    //The parameter that can be read include: common parameters, advertisement parameters, trigger parameters, and sensor parameters
+    public boolean connectEnhanced(String password, int timeout, KBConnPara connPara, ConnStateDelegate connectCallback)
+    {
+        if (state == KBConnState.Disconnected && password.length() <= 16 && password.length() >= 8)
+        {
+            delegate = connectCallback;
+
+            mGattConnection = mBleDevice.connectGatt(mContext, false, mGattCallback);
+            Log.v(LOG_TAG, "start connect to device " + mac);
+
+            mPassword = password;
+            state = KBConnState.Connecting;
+
+            //cancel action timer
+            this.cancelActionTimer();
+            clearBufferConfig();
+
+            //cancel connect timer
+            if (connPara != null) {
+                mConnPara = connPara;
+            }
+            mAuthHandler.setConnPara(mConnPara);
+            mMsgHandler.removeMessages(MSG_CONNECT_TIMEOUT);
+            mMsgHandler.sendEmptyMessageDelayed(MSG_CONNECT_TIMEOUT, timeout);
+
+            //notify connecting
+            if (delegate != null) {
+                this.delegate.onConnStateChange(this, KBConnState.Connecting, 0);
+            }
+            return true;
+        }
+        else
+        {
+            //notify connecting
+            Log.e(LOG_TAG, "input paramaters false");
+            return false;
+        }
+    }
+
+    //check if device was connected
+    public boolean isConnected()
+    {
+        return state == KBConnState.Connected;
+    }
+
+    public void disconnect()
+    {
+        if (state != KBConnState.Disconnected
+                && state != KBConnState.Disconnecting) {
+            this.closeBeacon(KBConnectionEvent.ConnManualDisconnecting);
+        }
+    }
+
+    //get common parameters that already read from device, if the SDK does not have common parameters, it wil return null
+    //The app can specify whether to read common parameters when connecting.
+    // The common parameters include the capability information of the device, as well as some other public parameters.
     public KBCfgCommon getCommonCfg()
     {
         return mCfgMgr.getCfgComm();
     }
 
-
+    //get all trigger configuration parameters that read from device
     public ArrayList<KBCfgTrigger> getTriggerCfgList()
     {
         return mCfgMgr.getTriggerCfgList();
@@ -395,29 +468,28 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         }
     }
 
-    public boolean isConnected()
-    {
-        return state == KBConnState.Connected;
+    //clear all read parameters
+    public void clearBufferConfig(){
+        mCfgMgr.clearBufferConfig();
     }
 
-    public boolean parseAdvPacket(ScanRecord data, int nRssi, String strName)
-    {
-        name = strName;
-        rssi = nRssi;
-
-        return mAdvPacketMgr.parseAdvPacket(data, rssi, strName);
-    }
-
+    //update connection event delegation
     public void setConnStateDelegate(ConnStateDelegate connectCallback)
     {
         delegate = connectCallback;
     }
 
-    public boolean isSensorDataSubscribe(Integer triggerType)
+    //check if device support trigger notification
+    public boolean isSupportSensorDataNotification()
     {
-        return notifyData2ClassMap.get(triggerType) != null;
+        if (getCharacteristicByID(KBUtility.KB_CFG_SERVICE_UUID, KBUtility.KB_IND_CHAR_UUID) != null)
+        {
+            return true;
+        }
+        return false;
     }
 
+    //subscribe trigger notification
     public void subscribeSensorDataNotify(int nTriggerEventType,
                                           NotifyDataDelegate notifyDataCallback,
                                           ActionCallback callback)
@@ -471,6 +543,13 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         }
     }
 
+    //check if app already subscribe the trigger notification
+    public boolean isSensorDataSubscribe(Integer triggerType)
+    {
+        return notifyData2ClassMap.get(triggerType) != null;
+    }
+
+    //remove subscribed trigger notificaiton
     public void removeSubscribeSensorDataNotify(int nTriggerType, ActionCallback callback)
     {
         try {
@@ -526,84 +605,17 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         }
     }
 
-    private void handleBeaconEnableSubscribeComplete()
-    {
-        cancelActionTimer();
-
-        if (mToAddedSubscribeInstance != null)
-        {
-            this.notifyData2ClassMap.put(mToAddedTriggerType, mToAddedSubscribeInstance);
-            mToAddedSubscribeInstance = null;
-            mToAddedTriggerType = 0;
-
-            if (mEnableSubscribeNotifyCallback != null) {
-                ActionCallback tmpAction = mEnableSubscribeNotifyCallback;
-                mEnableSubscribeNotifyCallback = null;
-                tmpAction.onActionComplete(true, null);
-            }
-        }
-        else
-        {
-            this.notifyData2ClassMap.clear();
-            if (mEnableSubscribeNotifyCallback != null) {
-                ActionCallback tmpAction = mEnableSubscribeNotifyCallback;
-                mEnableSubscribeNotifyCallback = null;
-                tmpAction.onActionComplete(true, null);
-            }
-        }
-    }
-
     public ConnStateDelegate getConnStateDelegate()
     {
         return delegate;
     }
 
-    public boolean connect(String password, int timeout, ConnStateDelegate connectCallback)
+    public void checkClearGattBuffer(int status)
     {
-        KBConnPara connPara = new KBConnPara();
-        return connectEnhanced(password, timeout, connPara, connectCallback);
-    }
-
-    public boolean connectEnhanced(String password, int timeout, KBConnPara connPara, ConnStateDelegate connectCallback)
-    {
-        if (state == KBConnState.Disconnected && password.length() <= 16 && password.length() >= 8)
+        if (status == 133 || status == BluetoothGatt.GATT_REQUEST_NOT_SUPPORTED)
         {
-            delegate = connectCallback;
+            Log.e(LOG_TAG, "remove device gatt catch:" + mac);
 
-            mGattConnection = mBleDevice.connectGatt(mContext, false, mGattCallback);
-            Log.v(LOG_TAG, "start connect to device " + mac);
-
-            mPassword = password;
-            state = KBConnState.Connecting;
-
-            //cancel action timer
-            this.cancelActionTimer();
-            clearBufferConfig();
-
-            //cancel connect timer
-            if (connPara != null) {
-                mConnPara = connPara;
-            }
-            mAuthHandler.setConnPara(mConnPara);
-            mMsgHandler.removeMessages(MSG_CONNECT_TIMEOUT);
-            mMsgHandler.sendEmptyMessageDelayed(MSG_CONNECT_TIMEOUT, timeout);
-
-            //notify connecting
-            if (delegate != null) {
-                this.delegate.onConnStateChange(this, KBConnState.Connecting, 0);
-            }
-            return true;
-        }
-        else
-        {
-            //notify connecting
-            Log.e(LOG_TAG, "input paramaters false");
-            return false;
-        }
-    }
-
-    public void clearDeviceCache() {
-        if (mGattConnection != null) {
             try {
                 Method localMethod = mGattConnection.getClass().getMethod("refresh", new Class[0]);
                 if (localMethod != null) {
@@ -614,303 +626,6 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
             }
         }
     }
-
-    private void connectingTimeout()
-    {
-        this.closeBeacon(KBConnectionEvent.ConnTimeout);
-    }
-
-    private void cancelActionTimer()
-    {
-        mMsgHandler.removeMessages(MSG_ACTION_TIME_OUT);
-        mActionStatus = ACTION_IDLE;
-    }
-
-    private boolean startNewAction(int nNewAction, int timeout)
-    {
-        if (mActionStatus != ACTION_IDLE)
-        {
-            return false;
-        }
-
-        mActionStatus = nNewAction;
-        if (timeout > 0)
-        {
-            mMsgHandler.sendEmptyMessageDelayed(MSG_ACTION_TIME_OUT, timeout);
-        }
-
-        return true;
-    }
-
-    //connect device timeout
-    private void actionTimeout()
-    {
-        if (mActionStatus == ACTION_INIT_READ_CFG)
-        {
-            mActionStatus = ACTION_IDLE;
-            closeBeacon(KBConnectionEvent.ConnTimeout);
-        }
-        else if (mActionStatus == ACTION_USR_READ_CFG)
-        {
-            mActionStatus = ACTION_IDLE;
-            if (mReadCfgCallback != null){
-                ReadConfigCallback tempCallback = mReadCfgCallback;
-                mReadCfgCallback = null;
-                tempCallback.onReadComplete(false, null, new KBException(KBErrorCode.CfgTimeout,
-                        "Read parameters from device timeout"));
-            }
-        }
-        else if (mActionStatus == ACTION_WRITE_CFG)
-        {
-            mActionStatus = ACTION_IDLE;
-            if (mWriteCfgCallback != null)
-            {
-                ActionCallback tmpAction = mWriteCfgCallback;
-                mWriteCfgCallback = null;
-                tmpAction.onActionComplete(false, new KBException(KBErrorCode.CfgTimeout,
-                        "Write parameters to device timeout"));
-            }
-        }
-        else if (mActionStatus == ACTION_WRITE_CMD)
-        {
-            mActionStatus = ACTION_IDLE;
-            if (mWriteCmdCallback != null)
-            {
-                ActionCallback tmpAction = mWriteCfgCallback;
-                mWriteCfgCallback = null;
-                tmpAction.onActionComplete(false, new KBException(KBErrorCode.CfgTimeout,
-                        "Write command to device timeout"));
-            }
-        }
-        else if (mActionStatus == ACTION_READ_SENSOR)
-        {
-            mActionStatus = ACTION_IDLE;
-            if (mReadSensorCallback != null)
-            {
-                ReadSensorCallback tempCallback = mReadSensorCallback;
-                mReadSensorCallback = null;
-                tempCallback.onReadComplete(false, null, new KBException(KBErrorCode.CfgTimeout,
-                        "Read parameters from device timeout"));
-            }
-        }
-        else if (mActionStatus == ACTION_ENABLE_NTF)
-        {
-            mActionStatus = ACTION_IDLE;
-            if (mEnableSubscribeNotifyCallback != null)
-            {
-                ActionCallback tmpAction = mEnableSubscribeNotifyCallback;
-                mEnableSubscribeNotifyCallback = null;
-                tmpAction.onActionComplete(false, new KBException(KBErrorCode.CfgTimeout,
-                        "Enable notification timeout"));
-            }
-        }
-    }
-
-    public void disconnect()
-    {
-        if (state != KBConnState.Disconnected
-                && state != KBConnState.Disconnecting) {
-            this.closeBeacon(KBConnectionEvent.ConnManualDisconnecting);
-        }
-    }
-
-    private void handleCentralBLEEvent(int status, int nNewState)
-    {
-        if (status == BluetoothGatt.GATT_SUCCESS)
-        {
-            if (state == KBConnState.Connecting && nNewState == BluetoothGatt.STATE_CONNECTED)
-            {
-                mGattConnection.discoverServices();
-            }
-        }
-        else
-        {
-            if (state == KBConnState.Disconnecting)
-            {
-                clearGattResource(mCloseReason);
-
-                checkClearGattBuffer(status);
-            }
-            else if (state == KBConnState.Connecting || state == KBConnState.Connected)
-            {
-                if (nNewState == BluetoothGatt.STATE_DISCONNECTED)
-                {
-                    state = KBConnState.Disconnecting;
-                    clearGattResource(KBConnectionEvent.ConnException);
-                    checkClearGattBuffer(status);
-                }
-                this.closeBeacon(KBConnectionEvent.ConnException);
-            }
-        }
-    }
-
-    public void checkClearGattBuffer(int status)
-    {
-        if (status == 133 || status == BluetoothGatt.GATT_REQUEST_NOT_SUPPORTED)
-        {
-            Log.e(LOG_TAG, "remove device gatt catch:" + mac);
-
-            clearDeviceCache();
-        }
-    }
-
-    public void authStateChange(int authRslt)
-    {
-        if (authRslt == KBAuthHandler.Failed)
-        {
-            this.closeBeacon(KBConnectionEvent.ConnAuthFail);
-        }
-        else if (authRslt == KBAuthHandler.Success)
-        {
-            this.cancelActionTimer();
-
-            if (state == KBConnState.Connecting) {
-                //common para
-                int firstReadRoundSubType = 0;
-                int readCfgTypeNum = 0;
-                mNextInitReadCfgSubtype = 0;
-                if (mConnPara.readCommPara){
-                    firstReadRoundSubType = (firstReadRoundSubType | KBCfgType.CommonPara);
-                    readCfgTypeNum = readCfgTypeNum + 1;
-                }
-
-                //slot adv para
-                if (mConnPara.readSlotPara){
-                    firstReadRoundSubType = (firstReadRoundSubType | KBCfgType.AdvPara);
-                    readCfgTypeNum = readCfgTypeNum + 1;
-                }
-
-                //trigger para
-                if (mConnPara.readTriggerPara){
-                    if (readCfgTypeNum < 2)
-                    {
-                        firstReadRoundSubType = (firstReadRoundSubType | KBCfgType.TriggerPara);
-                    }
-                    else
-                    {
-                        mNextInitReadCfgSubtype = (mNextInitReadCfgSubtype | KBCfgType.TriggerPara);
-                    }
-                }
-
-                //sensor para
-                if (mConnPara.readSensorPara){
-                    if (readCfgTypeNum < 2)
-                    {
-                        firstReadRoundSubType = (firstReadRoundSubType | KBCfgType.SensorPara);
-                    }
-                    else
-                    {
-                        mNextInitReadCfgSubtype = (mNextInitReadCfgSubtype | KBCfgType.SensorPara);
-                    }
-                }
-
-                if (firstReadRoundSubType > 0) {
-                    HashMap<String, Object> readCfgReq = new HashMap<>(10);
-                    readCfgReq.put(KBCfgBase.JSON_MSG_TYPE_KEY, KBCfgBase.JSON_MSG_TYPE_GET_PARA);
-                    readCfgReq.put(KBCfgBase.JSON_FIELD_SUBTYPE, firstReadRoundSubType);
-                    configReadBeaconParamaters(readCfgReq, ACTION_INIT_READ_CFG);
-                }
-            }
-        }
-    }
-
-    public void writeAuthData(byte[] data)
-    {
-        this.startWriteCfgValue(data);
-    }
-
-    private void clearGattResource(int nReason)
-    {
-        if (state == KBConnState.Disconnecting)
-        {
-            Log.v(LOG_TAG, "clear gatt connection resource");
-            state = KBConnState.Disconnected;
-            mGattConnection.close();
-            if (delegate != null) {
-                delegate.onConnStateChange(this, state, nReason);
-            }
-        }
-    }
-
-    private void closeBeacon(int nReason)
-    {
-        mCloseReason = nReason;
-
-        this.cancelActionTimer();
-        mMsgHandler.removeMessages(MSG_CONNECT_TIMEOUT);
-        mMsgHandler.removeMessages(MSG_CLOSE_CONNECTION_TIMEOUT);
-
-        if (state == KBConnState.Connected || state == KBConnState.Connecting)
-        {
-            state = KBConnState.Disconnecting;
-            //cancel connection
-            mGattConnection.disconnect();
-
-            mMsgHandler.sendEmptyMessageDelayed(MSG_CLOSE_CONNECTION_TIMEOUT, 7000);
-
-            if (delegate != null) {
-                delegate.onConnStateChange(this, state, mCloseReason);
-            }
-        }
-        else
-        {
-            if (state != KBConnState.Disconnected)
-            {
-                Log.e(LOG_TAG, "disconnected kbeacon for reason");
-                state = KBConnState.Disconnected;
-                if (delegate != null){
-                    delegate.onConnStateChange(this, state, mCloseReason);
-                }
-            }
-        }
-    }
-
-    private boolean startEnableNotification(UUID srvUUID, UUID charUUID)
-    {
-        BluetoothGattCharacteristic characteristic = getCharacteristicByID(srvUUID,
-                charUUID);
-        if (characteristic == null) {
-            Log.e(LOG_TAG, ":startWriteCharatics getCharacteristicByID failed." + charUUID);
-            Message msgCentralEvt = mMsgHandler.obtainMessage(MSG_SYS_CONNECTION_EVT, BluetoothGatt.GATT_REQUEST_NOT_SUPPORTED, BluetoothGatt.STATE_DISCONNECTING);
-            mMsgHandler.sendMessage(msgCentralEvt);
-            return false;
-        }
-
-        //set enable
-        if (!mGattConnection.setCharacteristicNotification(characteristic, true)) {
-            Message msgCentralEvt = mMsgHandler.obtainMessage(MSG_SYS_CONNECTION_EVT, BluetoothGatt.GATT_REQUEST_NOT_SUPPORTED, BluetoothGatt.STATE_DISCONNECTING);
-            mMsgHandler.sendMessage(msgCentralEvt);
-            return false;
-        }
-
-        BluetoothGattDescriptor descriptor = characteristic.getDescriptor(KBUtility.CHARACTERISTIC_NOTIFICATION_DESCRIPTOR_UUID);
-        descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
-        return mGattConnection.writeDescriptor(descriptor);
-    }
-
-    private boolean startEnableIndication(UUID srvUUID, UUID charUUID, boolean bEnable)
-    {
-        BluetoothGattCharacteristic characteristic = getCharacteristicByID(srvUUID,
-                charUUID);
-        if (characteristic == null) {
-            Log.e(LOG_TAG, ":startWriteCharatics getCharacteristicByID failed." + charUUID);
-            Message msgCentralEvt = mMsgHandler.obtainMessage(MSG_SYS_CONNECTION_EVT, BluetoothGatt.GATT_REQUEST_NOT_SUPPORTED, BluetoothGatt.STATE_DISCONNECTING);
-            mMsgHandler.sendMessage(msgCentralEvt);
-            return false;
-        }
-
-        //set enable
-        if (!mGattConnection.setCharacteristicNotification(characteristic, bEnable)) {
-            Message msgCentralEvt = mMsgHandler.obtainMessage(MSG_SYS_CONNECTION_EVT, BluetoothGatt.GATT_REQUEST_NOT_SUPPORTED, BluetoothGatt.STATE_DISCONNECTING);
-            mMsgHandler.sendMessage(msgCentralEvt);
-            return false;
-        }
-
-        BluetoothGattDescriptor descriptor = characteristic.getDescriptor(KBUtility.CHARACTERISTIC_NOTIFICATION_DESCRIPTOR_UUID);
-        descriptor.setValue(BluetoothGattDescriptor.ENABLE_INDICATION_VALUE);
-        return mGattConnection.writeDescriptor(descriptor);
-    }
-
 
     public void sendCommand(HashMap<String,Object>cmdPara, ActionCallback callback)
     {
@@ -939,23 +654,22 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         }
         mToBeCfgData = null;
         mWriteCmdCallback = callback;
-		
+
         mByDownloadDatas = strJsonCfgData.getBytes(StandardCharsets.UTF_8);
         mByDownDataType = CENT_PERP_TX_JSON_DATA;
         startNewAction(ACTION_WRITE_CMD, MAX_READ_CFG_TIMEOUT);
         sendNextCfgData(0);
     }
 
-    public void clearBufferConfig(){
-        mCfgMgr.clearBufferConfig();
-    }
+
 
     //create cfg object from JSON
-    ArrayList<KBCfgBase> createCfgObjectsFromJsonObject(JSONObject jsonObj)
+    public ArrayList<KBCfgBase> createCfgObjectsFromJsonObject(JSONObject jsonObj)
     {
         return KBCfgHandler.createCfgObjectsFromJsonObject(jsonObj);
     }
 
+    //read config by raw json message
     public void readConfig(HashMap<String,Object>readPara, final ReadConfigCallback callback)
     {
         if (mActionStatus != ACTION_IDLE)
@@ -983,7 +697,8 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         }
     }
 
-    //read device common config
+    //read slot common parameters from device
+    //this function will force app to read parameters again from device
     public void readCommonConfig(final ReadConfigCallback callback)
     {
         HashMap<String, Object> readCfgReq = new HashMap<>(10);
@@ -992,7 +707,8 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         readConfig(readCfgReq, callback);
     }
 
-    //read slot config
+    //read slot adv parameters from device
+    //this function will force app to read parameters again from device
     public void readSlotConfig(int nSlotIndex, final ReadConfigCallback callback)
     {
         HashMap<String, Object> readCfgReq = new HashMap<>(10);
@@ -1002,7 +718,8 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         readConfig(readCfgReq, callback);
     }
 
-    //read trigger config
+    //read trigger parameters from device
+    //this function will force app to read trigger parameters again from device
     public void readTriggerConfig(int nTriggerType, final ReadConfigCallback callback)
     {
         HashMap<String,Object> readCfgReq = new HashMap<>(5);
@@ -1012,7 +729,8 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         readConfig(readCfgReq, callback);
     }
 
-    //read trigger config
+    //read sensor parameters from device
+    //this function will force app to read sensor parameters again from device
     public void readSensorConfig(int nSensorType, final ReadConfigCallback callback)
     {
         HashMap<String,Object> readCfgReq = new HashMap<>(5);
@@ -1108,6 +826,314 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         mByDownDataType = CENT_PERP_TX_HEX_DATA;
         startNewAction(ACTION_READ_SENSOR, MAX_READ_CFG_TIMEOUT);
         sendNextCfgData(0);
+    }
+
+
+    private void handleCentralBLEEvent(int status, int nNewState)
+    {
+        if (status == BluetoothGatt.GATT_SUCCESS)
+        {
+            if (state == KBConnState.Connecting && nNewState == BluetoothGatt.STATE_CONNECTED)
+            {
+                mGattConnection.discoverServices();
+            }
+        }
+        else
+        {
+            if (state == KBConnState.Disconnecting)
+            {
+                clearGattResource(mCloseReason);
+
+                checkClearGattBuffer(status);
+            }
+            else if (state == KBConnState.Connecting || state == KBConnState.Connected)
+            {
+                if (nNewState == BluetoothGatt.STATE_DISCONNECTED)
+                {
+                    state = KBConnState.Disconnecting;
+                    clearGattResource(KBConnectionEvent.ConnException);
+                    checkClearGattBuffer(status);
+                }
+                this.closeBeacon(KBConnectionEvent.ConnException);
+            }
+        }
+    }
+
+    private void handleBeaconEnableSubscribeComplete()
+    {
+        cancelActionTimer();
+
+        if (mToAddedSubscribeInstance != null)
+        {
+            this.notifyData2ClassMap.put(mToAddedTriggerType, mToAddedSubscribeInstance);
+            mToAddedSubscribeInstance = null;
+            mToAddedTriggerType = 0;
+
+            if (mEnableSubscribeNotifyCallback != null) {
+                ActionCallback tmpAction = mEnableSubscribeNotifyCallback;
+                mEnableSubscribeNotifyCallback = null;
+                tmpAction.onActionComplete(true, null);
+            }
+        }
+        else
+        {
+            this.notifyData2ClassMap.clear();
+            if (mEnableSubscribeNotifyCallback != null) {
+                ActionCallback tmpAction = mEnableSubscribeNotifyCallback;
+                mEnableSubscribeNotifyCallback = null;
+                tmpAction.onActionComplete(true, null);
+            }
+        }
+    }
+
+    private void connectingTimeout()
+    {
+        this.closeBeacon(KBConnectionEvent.ConnTimeout);
+    }
+
+    private void cancelActionTimer()
+    {
+        mMsgHandler.removeMessages(MSG_ACTION_TIME_OUT);
+        mActionStatus = ACTION_IDLE;
+    }
+
+    private boolean startNewAction(int nNewAction, int timeout)
+    {
+        if (mActionStatus != ACTION_IDLE)
+        {
+            return false;
+        }
+
+        mActionStatus = nNewAction;
+        if (timeout > 0)
+        {
+            mMsgHandler.sendEmptyMessageDelayed(MSG_ACTION_TIME_OUT, timeout);
+        }
+
+        return true;
+    }
+
+    //connect device timeout
+    private void actionTimeout()
+    {
+        if (mActionStatus == ACTION_INIT_READ_CFG)
+        {
+            mActionStatus = ACTION_IDLE;
+            closeBeacon(KBConnectionEvent.ConnTimeout);
+        }
+        else if (mActionStatus == ACTION_USR_READ_CFG)
+        {
+            mActionStatus = ACTION_IDLE;
+            if (mReadCfgCallback != null){
+                ReadConfigCallback tempCallback = mReadCfgCallback;
+                mReadCfgCallback = null;
+                tempCallback.onReadComplete(false, null, new KBException(KBErrorCode.CfgTimeout,
+                        "Read parameters from device timeout"));
+            }
+        }
+        else if (mActionStatus == ACTION_WRITE_CFG)
+        {
+            mActionStatus = ACTION_IDLE;
+            if (mWriteCfgCallback != null)
+            {
+                ActionCallback tmpAction = mWriteCfgCallback;
+                mWriteCfgCallback = null;
+                tmpAction.onActionComplete(false, new KBException(KBErrorCode.CfgTimeout,
+                        "Write parameters to device timeout"));
+            }
+        }
+        else if (mActionStatus == ACTION_WRITE_CMD)
+        {
+            mActionStatus = ACTION_IDLE;
+            if (mWriteCmdCallback != null)
+            {
+                ActionCallback tmpAction = mWriteCfgCallback;
+                mWriteCfgCallback = null;
+                tmpAction.onActionComplete(false, new KBException(KBErrorCode.CfgTimeout,
+                        "Write command to device timeout"));
+            }
+        }
+        else if (mActionStatus == ACTION_READ_SENSOR)
+        {
+            mActionStatus = ACTION_IDLE;
+            if (mReadSensorCallback != null)
+            {
+                ReadSensorCallback tempCallback = mReadSensorCallback;
+                mReadSensorCallback = null;
+                tempCallback.onReadComplete(false, null, new KBException(KBErrorCode.CfgTimeout,
+                        "Read parameters from device timeout"));
+            }
+        }
+        else if (mActionStatus == ACTION_ENABLE_NTF)
+        {
+            mActionStatus = ACTION_IDLE;
+            if (mEnableSubscribeNotifyCallback != null)
+            {
+                ActionCallback tmpAction = mEnableSubscribeNotifyCallback;
+                mEnableSubscribeNotifyCallback = null;
+                tmpAction.onActionComplete(false, new KBException(KBErrorCode.CfgTimeout,
+                        "Enable notification timeout"));
+            }
+        }
+    }
+
+    @Override
+    public void authStateChange(int authRslt)
+    {
+        if (authRslt == KBAuthHandler.Failed)
+        {
+            this.closeBeacon(KBConnectionEvent.ConnAuthFail);
+        }
+        else if (authRslt == KBAuthHandler.Success)
+        {
+            this.cancelActionTimer();
+
+            if (state == KBConnState.Connecting) {
+                //common para
+                int firstReadRoundSubType = 0;
+                int readCfgTypeNum = 0;
+                mNextInitReadCfgSubtype = 0;
+                if (mConnPara.readCommPara){
+                    firstReadRoundSubType = (firstReadRoundSubType | KBCfgType.CommonPara);
+                    readCfgTypeNum = readCfgTypeNum + 1;
+                }
+
+                //slot adv para
+                if (mConnPara.readSlotPara){
+                    firstReadRoundSubType = (firstReadRoundSubType | KBCfgType.AdvPara);
+                    readCfgTypeNum = readCfgTypeNum + 1;
+                }
+
+                //trigger para
+                if (mConnPara.readTriggerPara){
+                    if (readCfgTypeNum < 2)
+                    {
+                        firstReadRoundSubType = (firstReadRoundSubType | KBCfgType.TriggerPara);
+                    }
+                    else
+                    {
+                        mNextInitReadCfgSubtype = (mNextInitReadCfgSubtype | KBCfgType.TriggerPara);
+                    }
+                }
+
+                //sensor para
+                if (mConnPara.readSensorPara){
+                    if (readCfgTypeNum < 2)
+                    {
+                        firstReadRoundSubType = (firstReadRoundSubType | KBCfgType.SensorPara);
+                    }
+                    else
+                    {
+                        mNextInitReadCfgSubtype = (mNextInitReadCfgSubtype | KBCfgType.SensorPara);
+                    }
+                }
+
+                if (firstReadRoundSubType > 0) {
+                    HashMap<String, Object> readCfgReq = new HashMap<>(10);
+                    readCfgReq.put(KBCfgBase.JSON_MSG_TYPE_KEY, KBCfgBase.JSON_MSG_TYPE_GET_PARA);
+                    readCfgReq.put(KBCfgBase.JSON_FIELD_SUBTYPE, firstReadRoundSubType);
+                    configReadBeaconParamaters(readCfgReq, ACTION_INIT_READ_CFG);
+                }
+            }
+        }
+    }
+
+    @Override
+    public void writeAuthData(byte[] data)
+    {
+        this.startWriteCfgValue(data);
+    }
+
+    private void clearGattResource(int nReason)
+    {
+        if (state == KBConnState.Disconnecting)
+        {
+            Log.v(LOG_TAG, "clear gatt connection resource");
+            state = KBConnState.Disconnected;
+            mGattConnection.close();
+            if (delegate != null) {
+                delegate.onConnStateChange(this, state, nReason);
+            }
+        }
+    }
+
+    private void closeBeacon(int nReason)
+    {
+        mCloseReason = nReason;
+
+        this.cancelActionTimer();
+        mMsgHandler.removeMessages(MSG_CONNECT_TIMEOUT);
+        mMsgHandler.removeMessages(MSG_CLOSE_CONNECTION_TIMEOUT);
+
+        if (state == KBConnState.Connected || state == KBConnState.Connecting)
+        {
+            state = KBConnState.Disconnecting;
+            //cancel connection
+            mGattConnection.disconnect();
+
+            mMsgHandler.sendEmptyMessageDelayed(MSG_CLOSE_CONNECTION_TIMEOUT, 7000);
+
+            if (delegate != null) {
+                delegate.onConnStateChange(this, state, mCloseReason);
+            }
+        }
+        else
+        {
+            if (state != KBConnState.Disconnected)
+            {
+                Log.e(LOG_TAG, "disconnected kbeacon for reason");
+                state = KBConnState.Disconnected;
+                if (delegate != null){
+                    delegate.onConnStateChange(this, state, mCloseReason);
+                }
+            }
+        }
+    }
+
+    private boolean startEnableNotification(UUID srvUUID, UUID charUUID)
+    {
+        BluetoothGattCharacteristic characteristic = getCharacteristicByID(srvUUID,
+                charUUID);
+        if (characteristic == null) {
+            Log.e(LOG_TAG, ":startWriteCharatics getCharacteristicByID failed." + charUUID);
+            Message msgCentralEvt = mMsgHandler.obtainMessage(MSG_SYS_CONNECTION_EVT, BluetoothGatt.GATT_REQUEST_NOT_SUPPORTED, BluetoothGatt.STATE_DISCONNECTING);
+            mMsgHandler.sendMessage(msgCentralEvt);
+            return false;
+        }
+
+        //set enable
+        if (!mGattConnection.setCharacteristicNotification(characteristic, true)) {
+            Message msgCentralEvt = mMsgHandler.obtainMessage(MSG_SYS_CONNECTION_EVT, BluetoothGatt.GATT_REQUEST_NOT_SUPPORTED, BluetoothGatt.STATE_DISCONNECTING);
+            mMsgHandler.sendMessage(msgCentralEvt);
+            return false;
+        }
+
+        BluetoothGattDescriptor descriptor = characteristic.getDescriptor(KBUtility.CHARACTERISTIC_NOTIFICATION_DESCRIPTOR_UUID);
+        descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+        return mGattConnection.writeDescriptor(descriptor);
+    }
+
+    private boolean startEnableIndication(UUID srvUUID, UUID charUUID, boolean bEnable)
+    {
+        BluetoothGattCharacteristic characteristic = getCharacteristicByID(srvUUID,
+                charUUID);
+        if (characteristic == null) {
+            Log.e(LOG_TAG, ":startWriteCharatics getCharacteristicByID failed." + charUUID);
+            Message msgCentralEvt = mMsgHandler.obtainMessage(MSG_SYS_CONNECTION_EVT, BluetoothGatt.GATT_REQUEST_NOT_SUPPORTED, BluetoothGatt.STATE_DISCONNECTING);
+            mMsgHandler.sendMessage(msgCentralEvt);
+            return false;
+        }
+
+        //set enable
+        if (!mGattConnection.setCharacteristicNotification(characteristic, bEnable)) {
+            Message msgCentralEvt = mMsgHandler.obtainMessage(MSG_SYS_CONNECTION_EVT, BluetoothGatt.GATT_REQUEST_NOT_SUPPORTED, BluetoothGatt.STATE_DISCONNECTING);
+            mMsgHandler.sendMessage(msgCentralEvt);
+            return false;
+        }
+
+        BluetoothGattDescriptor descriptor = characteristic.getDescriptor(KBUtility.CHARACTERISTIC_NOTIFICATION_DESCRIPTOR_UUID);
+        descriptor.setValue(BluetoothGattDescriptor.ENABLE_INDICATION_VALUE);
+        return mGattConnection.writeDescriptor(descriptor);
     }
 
     private void sendNextCfgData(int nReqDataSeq)
@@ -1439,13 +1465,12 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         Log.e(LOG_TAG, jstrLogString);
     }
 
-    public boolean isSupportSensorDataNotification()
+    boolean parseAdvPacket(ScanRecord data, int nRssi, String strName)
     {
-        if (getCharacteristicByID(KBUtility.KB_CFG_SERVICE_UUID, KBUtility.KB_IND_CHAR_UUID) != null)
-        {
-            return true;
-        }
-        return false;
+        name = strName;
+        rssi = nRssi;
+
+        return mAdvPacketMgr.parseAdvPacket(data, rssi, strName);
     }
 
     private void handleJsonRptDataComplete()

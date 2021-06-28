@@ -22,11 +22,6 @@ public class KBAdvPacketHandler {
 
     private int filterAdvType;
 
-    public Integer getBatteryPercent()
-    {
-        return batteryPercent;
-    }
-
     private HashMap<String, KBAdvPacketBase> mAdvPackets;
 
     static private HashMap<String, Class> kbAdvPacketTypeObjects;
@@ -58,9 +53,19 @@ public class KBAdvPacketHandler {
         this.filterAdvType = filterAdvType;
     }
 
+    public Integer getBatteryPercent()
+    {
+        return batteryPercent;
+    }
+
     public KBAdvPacketBase getAdvPacket(int nAdvType)
     {
         return mAdvPackets.get(String.valueOf(nAdvType));
+    }
+
+    public void removeAdvPacket()
+    {
+        this.mAdvPackets.clear();
     }
 
     public boolean parseAdvPacket(ScanRecord record, int rssi, String name) {
