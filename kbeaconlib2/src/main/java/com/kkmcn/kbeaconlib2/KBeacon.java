@@ -627,6 +627,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         }
     }
 
+    //send command parameters to device
     public void sendCommand(HashMap<String,Object>cmdPara, ActionCallback callback)
     {
         if (mActionStatus != ACTION_IDLE)
@@ -796,6 +797,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         sendNextCfgData(0);
     }
 
+    //send sensor message request to device
     public void sendSensorRequest(byte[] msgReq, ReadSensorCallback callback)
     {
         if (mActionStatus != ACTION_IDLE)
@@ -1336,8 +1338,6 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         }
     }
 
-  
-	
 	private void configHandleReadDataRpt(byte frameType, byte byDataType, byte[]data)
     {
         boolean bRcvDataCmp = false;

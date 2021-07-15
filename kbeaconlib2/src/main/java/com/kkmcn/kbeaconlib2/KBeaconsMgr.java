@@ -143,6 +143,16 @@ public class KBeaconsMgr {
         return true;
     }
 
+    public BluetoothManager getBluetoothManager()
+    {
+        return mBluetoothManager;
+    }
+
+    public BluetoothAdapter getBluetoothAdapter()
+    {
+        return mBluetoothAdapter;
+    }
+
     public HashMap Beacons()
     {
         return mCbKBeacons;
@@ -245,7 +255,7 @@ public class KBeaconsMgr {
     public boolean isLe2MPhySupported()
     {
         if (KBUtility.isMOhone()) {
-            return mBluetoothAdapter.isLe2MPhySupported();
+            return mBluetoothAdapter.isLe2MPhySupported() && mBluetoothAdapter.isLeExtendedAdvertisingSupported();
         }else{
             return false;
         }
@@ -435,8 +445,8 @@ public class KBeaconsMgr {
         {
             String strAddress = rslt.getDevice().getAddress();
             if (strAddress != null){
-                String strAddressLowCase = strAddress.toLowerCase();
-                String strFilterLowCase = advMacFilter.toLowerCase();
+                String strAddressLowCase = strAddress.toLowerCase().replace(":", "");
+                String strFilterLowCase = advMacFilter.toLowerCase().replace(":", "");
                 if (strAddressLowCase.contains(strFilterLowCase)) {
                     bFilter = false;
                 }
