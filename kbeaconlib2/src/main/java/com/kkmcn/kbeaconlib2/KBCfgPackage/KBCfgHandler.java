@@ -47,11 +47,11 @@ public class KBCfgHandler {
         kbCfgTriggerObjects.put(String.valueOf(KBTriggerType.BtnSingleClick), KBCfgTrigger.class);
         kbCfgTriggerObjects.put(String.valueOf(KBTriggerType.BtnDoubleClick), KBCfgTrigger.class);
         kbCfgTriggerObjects.put(String.valueOf(KBTriggerType.BtnTripleClick), KBCfgTrigger.class);
+        kbCfgTriggerObjects.put(String.valueOf(KBTriggerType.CutoffWatchband), KBCfgTrigger.class);
         kbCfgTriggerObjects.put(String.valueOf(KBTriggerType.HTTempAbove), KBCfgTrigger.class);
         kbCfgTriggerObjects.put(String.valueOf(KBTriggerType.HTTempBelow), KBCfgTrigger.class);
         kbCfgTriggerObjects.put(String.valueOf(KBTriggerType.HTHumidityBelow), KBCfgTrigger.class);
         kbCfgTriggerObjects.put(String.valueOf(KBTriggerType.HTHumidityAbove), KBCfgTrigger.class);
-        kbCfgTriggerObjects.put(String.valueOf(KBTriggerType.HTRealTimeReport), KBCfgTrigger.class);
 
         kbCfgSensorObjects = new HashMap<>(5);
         kbCfgSensorObjects.put(String.valueOf(KBSensorType.HTHumidity), KBCfgSensorHT.class);

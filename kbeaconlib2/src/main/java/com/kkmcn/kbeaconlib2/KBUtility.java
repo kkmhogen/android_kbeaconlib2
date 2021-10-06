@@ -152,6 +152,12 @@ public class KBUtility {
         return true;
     }
 
+    public static boolean isNumber(String string) {
+        if (string == null)
+            return false;
+        Pattern pattern = Pattern.compile("^-?\\d+(\\.\\d+)?$");
+        return pattern.matcher(string).matches();
+    }
 
     public static boolean isUUIDString(String hexString)
     {

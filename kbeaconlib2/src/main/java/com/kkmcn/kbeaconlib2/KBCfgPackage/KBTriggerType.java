@@ -12,11 +12,13 @@ public class KBTriggerType {
     public static final int BtnDoubleClick = 5;   //double tap
     public static final int BtnTripleClick = 6;   //triple tap
 
+    //cutoff alarm
+    public static final int CutoffWatchband = 7;   //cut off
+
+
     //temp and humidity trigger
     public static final int HTTempAbove = 8;   //temperature above
     public static final int HTTempBelow = 9;   //temperature below
     public static final int HTHumidityAbove = 10;   //humidity above
     public static final int HTHumidityBelow = 11;   //humidity below
-    public static final int HTRealTimeReport = 12;   //report the measure data to app realtime when connected
-
 }

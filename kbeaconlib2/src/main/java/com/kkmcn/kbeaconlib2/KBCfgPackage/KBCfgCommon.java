@@ -167,6 +167,13 @@ public class KBCfgCommon extends KBCfgBase{
         return ((basicCapability & 0x8) > 0);
     }
 
+    //is support cutoff trigger
+    public boolean isSupportTrigger(int nTriggerType)
+    {
+        int nTriggerMask = (1 << (nTriggerType-1));
+        return ((trigCapability & nTriggerMask) > 0);
+    }
+
     //trigger capability
     public Integer getTrigCapability()
     {

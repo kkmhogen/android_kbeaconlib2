@@ -105,6 +105,21 @@ public class KBeaconsMgr {
         return sharedStaticBeaconMgr;
     }
 
+    //remove the single beacon manager instance
+    public static void clearBeaconManager() {
+        if (sharedStaticBeaconMgr != null)
+        {
+            sharedStaticBeaconMgr.clearBeacons();
+            if (sharedStaticBeaconMgr.mReceiver != null) {
+                sharedStaticBeaconMgr.mContext.unregisterReceiver(sharedStaticBeaconMgr.mReceiver);
+                sharedStaticBeaconMgr.mReceiver = null;
+            }
+            sharedStaticBeaconMgr.delegate = null;
+            sharedStaticBeaconMgr = null;
+        }
+    }
+
+
     private KBeaconsMgr(Context c){
         mContext = c;
     }
