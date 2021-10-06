@@ -1853,7 +1853,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
             {
                 byte[] ntfData = characteristic.getValue();
                 Message msg = mMsgHandler.obtainMessage(MSG_BEACON_DATA_RECEIVED, ntfData);
-                mMsgHandler.sendMessageDelayed(msg, 100);
+                mMsgHandler.sendMessageDelayed(msg, 50);
             }
             else if (charUuid.equals(KBUtility.KB_IND_CHAR_UUID))
             {
