@@ -21,4 +21,7 @@ public class KBTriggerType {
     public static final int HTTempBelow = 9;   //temperature below
     public static final int HTHumidityAbove = 10;   //humidity above
     public static final int HTHumidityBelow = 11;   //humidity below
+
+    public static final int HTHumidityPeriodically= 12;   //Periodically report
+
 }

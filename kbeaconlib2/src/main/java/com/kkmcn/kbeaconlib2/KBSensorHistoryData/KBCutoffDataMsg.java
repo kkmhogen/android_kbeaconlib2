@@ -1,60 +1,57 @@
 package com.kkmcn.kbeaconlib2.KBSensorHistoryData;
 
 import com.kkmcn.kbeaconlib2.ByteConvert;
-import com.kkmcn.kbeaconlib2.KBUtility;
 import com.kkmcn.kbeaconlib2.KBeacon;
 import com.kkmcn.kbeaconlib2.UTCTime;
 
 import java.util.ArrayList;
 
-public class KBHumidityDataMsg extends KBSensorDataMsgBase{
-
-
-    public class ReadHTSensorDataRsp  extends Object
+public class KBCutoffDataMsg extends KBSensorDataMsgBase{
+    public class ReadDoorSensorDataRsp  extends Object
     {
         public Long readDataNextPos;
 
-        public ArrayList<KBHumidityRecord> readDataRspList;
+        public ArrayList<KBCutoffRecord> readDataRspList;
     };
 
-    public static final int KBSensorDataTypeHumidity = 2;
+    public static final int KBSensorDataTypeCutoff = 4;
     public static final long MIN_UTC_TIME_SECONDS = 946080000;
-    public static int HT_RECORD_LEN = 8;
+    public static int CUT_OFF_RECORD_LEN = 5;
 
     public int getSensorDataType()
     {
-        return KBSensorDataTypeHumidity;
+        return KBSensorDataTypeCutoff;
     }
 
     public Object parseSensorDataResponse(final KBeacon beacon, int nDataPtr, byte[] sensorDataRsp)
     {
         //sensor data type
         int nReadIndex = nDataPtr;
-        if (sensorDataRsp[nReadIndex] != KBSensorDataTypeHumidity)
+        if (sensorDataRsp[nReadIndex] != KBSensorDataTypeCutoff)
         {
             return null;
         }
         nReadIndex++;
 
         //next read data pos
-        ReadHTSensorDataRsp readDataRsp = new ReadHTSensorDataRsp();
+        ReadDoorSensorDataRsp readDataRsp = new ReadDoorSensorDataRsp();
         readDataRsp.readDataNextPos = ByteConvert.bytesTo4Long(sensorDataRsp, nReadIndex);
         nReadIndex += 4;
 
         //check payload length
         int nPayLoad = (sensorDataRsp.length - nReadIndex);
-        if (nPayLoad % HT_RECORD_LEN != 0)
+        if (nPayLoad % CUT_OFF_RECORD_LEN != 0)
         {
-          return null;
+            return null;
         }
 
         //read record
         readDataRsp.readDataRspList = new ArrayList<>(30);
-        int nTotalRecordNum = nPayLoad / HT_RECORD_LEN;
+        int nTotalRecordNum= nPayLoad / CUT_OFF_RECORD_LEN;
         int nRecordPtr = nReadIndex;
         for (int i = 0; i < nTotalRecordNum; i++)
         {
-            KBHumidityRecord record = new KBHumidityRecord();
+            KBCutoffRecord record = new KBCutoffRecord();
 
             //utc time
             record.mUtcTime = ByteConvert.bytesTo4Long(sensorDataRsp, nRecordPtr);
@@ -64,12 +61,8 @@ public class KBHumidityDataMsg extends KBSensorDataMsgBase{
             }
             nRecordPtr += 4;
 
-
-            record.mTemperature = KBUtility.signedBytes2Float(sensorDataRsp[nRecordPtr], sensorDataRsp[nRecordPtr+1]);
-            nRecordPtr += 2;
-
-            record.mHumidity = KBUtility.signedBytes2Float(sensorDataRsp[nRecordPtr], sensorDataRsp[nRecordPtr+1]);
-            nRecordPtr += 2;
+            record.mCutoffFlag = sensorDataRsp[nRecordPtr];
+            nRecordPtr += 1;
 
             readDataRsp.readDataRspList.add(record);
         }

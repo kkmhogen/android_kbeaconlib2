@@ -11,10 +11,13 @@ public class KBAdvPacketSensor extends KBAdvPacketBase{
     private final  static int SENSOR_MASK_HUME = 0x4;
     private final  static int SENSOR_MASK_ACC_AIX = 0x8;
     private final  static int SENSOR_MASK_CUTOFF = 0x10;
+    private final  static int SENSOR_MASK_PIR = 0x20;
 
     private KBAccSensorValue accSensor;
 
-    private Boolean watchCutoff;
+    private Integer watchCutoff;
+
+    private Integer pirIndication;
 
     private Float temperature;
 
@@ -34,7 +37,7 @@ public class KBAdvPacketSensor extends KBAdvPacketBase{
         return accSensor;
     }
 
-    public Boolean getWatchCutoff()
+    public Integer getWatchCutoff()
     {
         return watchCutoff;
     }
@@ -57,6 +60,10 @@ public class KBAdvPacketSensor extends KBAdvPacketBase{
     public Integer getBatteryLevel()
     {
         return batteryLevel;
+    }
+
+    public Integer getPirIndication() {
+        return pirIndication;
     }
 
     public boolean parseAdvPacket(byte[] beaconData)
@@ -137,9 +144,18 @@ public class KBAdvPacketSensor extends KBAdvPacketBase{
             if (nSrvIndex > (beaconData.length - 1)) {
                 return false;
             }
-            watchCutoff = (beaconData[nSrvIndex++] > 0);
+            watchCutoff = (int)beaconData[nSrvIndex++];
         }else{
             watchCutoff = null;
+        }
+
+        if ((nSensorMask & SENSOR_MASK_PIR) > 0) {
+            if (nSrvIndex > (beaconData.length - 1)) {
+                return false;
+            }
+            pirIndication = (int)beaconData[nSrvIndex++];
+        }else{
+            pirIndication = null;
         }
 
         return true;

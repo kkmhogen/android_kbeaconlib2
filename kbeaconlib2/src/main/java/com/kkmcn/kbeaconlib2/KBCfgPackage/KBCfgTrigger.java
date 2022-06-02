@@ -16,6 +16,9 @@ public class KBCfgTrigger extends KBCfgBase {
     public static final int MIN_HUMIDITY_VALUE = 1;
     public static final int MAX_HUMIDITY_VALUE = 99;
 
+    public static final int KBTriggerConditionDefaultHumidityRptInterval = 300;
+    public static final int MIN_HUMIDITY_RPT_INTERVAL = 3;
+    public static final int MAX_HUMIDITY_RPT_INTERVAL = 36000;
     //humidity sensor
     public static final int KBTriggerConditionDefaultTemperatureAbove = 60;
     public static final int KBTriggerConditionDefaultTemperatureBelow = -10;

@@ -167,12 +167,31 @@ public class KBCfgCommon extends KBCfgBase{
         return ((basicCapability & 0x8) > 0);
     }
 
+    //is support history record
+    public boolean isSupportHistoryRecord()
+    {
+        return ((basicCapability & 0x100000) > 0);
+    }
+
+    //is support humidity sensor
+    public boolean isSupportCutoffSensor()
+    {
+        return ((basicCapability & 0x10) > 0);
+    }
+
+    //is support humidity sensor
+    public boolean isSupportPIRSensor()
+    {
+        return ((basicCapability & 0x20) > 0);
+    }
+
     //is support cutoff trigger
     public boolean isSupportTrigger(int nTriggerType)
     {
         int nTriggerMask = (1 << (nTriggerType-1));
         return ((trigCapability & nTriggerMask) > 0);
     }
+
 
     //trigger capability
     public Integer getTrigCapability()

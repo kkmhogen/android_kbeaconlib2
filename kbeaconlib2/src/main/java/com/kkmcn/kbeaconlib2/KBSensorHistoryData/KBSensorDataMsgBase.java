@@ -5,6 +5,7 @@ import com.kkmcn.kbeaconlib2.KBCfgPackage.KBCfgTrigger;
 import com.kkmcn.kbeaconlib2.KBErrorCode;
 import com.kkmcn.kbeaconlib2.KBException;
 import com.kkmcn.kbeaconlib2.KBeacon;
+import com.kkmcn.kbeaconlib2.UTCTime;
 
 
 public abstract class KBSensorDataMsgBase extends KBCfgTrigger {
@@ -22,15 +23,24 @@ public abstract class KBSensorDataMsgBase extends KBCfgTrigger {
 
     protected ReadSensorCallback mReadSensorCallback;
 
+    protected long mUtcOffset;
+
     public interface ReadSensorCallback {
         void onReadComplete(boolean bConfigSuccess, Object obj, KBException error);
     }
 
+    public class ReadSensorInfoRsp extends Object
+    {
+        public Integer totalRecordNumber;
+
+        public Integer unreadRecordNumber;
+
+        public Long readInfoUtcSeconds;
+    };
+
     abstract public int getSensorDataType();
 
     abstract public Object parseSensorDataResponse(final KBeacon beacon, int nDataPtr, byte[] sensorDataRsp);
-
-    abstract public Object parseSensorInfoResponse(final KBeacon beacon, int nDataPtr, byte[] sensorDataRsp);
 
     //////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -92,6 +102,31 @@ public abstract class KBSensorDataMsgBase extends KBCfgTrigger {
                 }
             }
         });
+    }
+
+    public Object parseSensorInfoResponse(final KBeacon beacon, int nDataPtr, byte[] sensorDataRsp)
+    {
+        if (sensorDataRsp.length -  nDataPtr < 8)
+        {
+            return null;
+        }
+
+        ReadSensorInfoRsp infoRsp = new ReadSensorInfoRsp();
+
+        //total record number
+        infoRsp.totalRecordNumber = (int) ByteConvert.bytesTo4Long(sensorDataRsp, nDataPtr);
+        nDataPtr+=4;
+
+        //total record number
+        infoRsp.unreadRecordNumber = (int) ByteConvert.bytesTo4Long(sensorDataRsp, nDataPtr);
+        nDataPtr+=4;
+
+        //utc offset
+        infoRsp.readInfoUtcSeconds = (Long) ByteConvert.bytesTo4Long(sensorDataRsp, nDataPtr );
+        mUtcOffset = UTCTime.getUTCTimeSeconds() - infoRsp.readInfoUtcSeconds;
+        nDataPtr += 4;
+
+        return infoRsp;
     }
 
     public void readSensorRecord(final KBeacon beacon, long nReadRcdNo, int nReadOption, int nMaxRecordNum, final ReadSensorCallback readCallback) {
