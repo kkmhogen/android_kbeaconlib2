@@ -37,7 +37,7 @@ public class KBUtility {
 
 
     @TargetApi(Build.VERSION_CODES.M)
-    public static boolean isLocationBluePermission(final Context context) {
+    public static boolean isBluetoothScanningPermission(final Context context) {
         if (!KBUtility.isMPhone()) {
             return true;
         } else {
@@ -46,6 +46,9 @@ public class KBUtility {
                 result = false;
             }
             if (context.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                result = false;
+            }
+            if (context.checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
                 result = false;
             }
             return result;

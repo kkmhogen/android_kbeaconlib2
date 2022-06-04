@@ -13,7 +13,7 @@ public class KBTriggerType {
     public static final int BtnTripleClick = 6;   //triple tap
 
     //cutoff alarm
-    public static final int CutoffWatchband = 7;   //cut off
+    public static final int Cutoff = 7;   //cut off
 
 
     //temp and humidity trigger

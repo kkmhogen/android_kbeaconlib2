@@ -303,12 +303,6 @@ public class KBeaconsMgr {
 
     public int startScanning()
     {
-        if (!KBUtility.isLocationBluePermission(mContext))
-        {
-            Log.e(TAG, "No location permission for scanning.");
-            return SCAN_ERROR_NO_PERMISSION;
-        }
-
         if (!mBluetoothAdapter.isEnabled())
         {
             Log.e(TAG, "No location permission for scanning.");

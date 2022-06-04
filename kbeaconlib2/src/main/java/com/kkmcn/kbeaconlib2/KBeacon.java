@@ -26,6 +26,7 @@ import com.kkmcn.kbeaconlib2.KBCfgPackage.KBCfgHandler;
 import com.kkmcn.kbeaconlib2.KBCfgPackage.KBCfgSensorBase;
 import com.kkmcn.kbeaconlib2.KBCfgPackage.KBCfgTrigger;
 import com.kkmcn.kbeaconlib2.KBCfgPackage.KBCfgType;
+import com.kkmcn.kbeaconlib2.KBCfgPackage.KBTriggerType;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -490,7 +491,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
     }
 
     //subscribe trigger notification
-    public void subscribeSensorDataNotify(int nTriggerEventType,
+    public void subscribeSensorDataNotify(Integer nTriggerEventType,
                                           NotifyDataDelegate notifyDataCallback,
                                           ActionCallback callback)
     {
@@ -521,6 +522,9 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
 
                 //save callback
                 mToAddedSubscribeInstance = notifyDataCallback;
+                if (nTriggerEventType == null){
+                    nTriggerEventType = KBTriggerType.TriggerNull;
+                }
                 mToAddedTriggerType = nTriggerEventType;
                 mEnableSubscribeNotifyCallback = callback;
                 if (startEnableIndication(KBUtility.KB_CFG_SERVICE_UUID, KBUtility.KB_IND_CHAR_UUID, true))
@@ -550,7 +554,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
     }
 
     //remove subscribed trigger notificaiton
-    public void removeSubscribeSensorDataNotify(int nTriggerType, ActionCallback callback)
+    public void removeSubscribeSensorDataNotify(Integer nTriggerType, ActionCallback callback)
     {
         try {
             if (!isSupportSensorDataNotification()) {
@@ -558,6 +562,10 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
                     callback.onActionComplete(false, new KBException(KBErrorCode.CfgNotSupport, "Device does not support subscription"));
                 }
                 return;
+            }
+
+            if (nTriggerType == null){
+                nTriggerType = KBTriggerType.TriggerNull;
             }
 
             if (this.notifyData2ClassMap.get(nTriggerType) == null)
@@ -869,7 +877,6 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         {
             this.notifyData2ClassMap.put(mToAddedTriggerType, mToAddedSubscribeInstance);
             mToAddedSubscribeInstance = null;
-            mToAddedTriggerType = 0;
 
             if (mEnableSubscribeNotifyCallback != null) {
                 ActionCallback tmpAction = mEnableSubscribeNotifyCallback;
@@ -1702,9 +1709,14 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
     private void handleBeaconIndData(byte[] data)
     {
         int nDataType = data[0];
-        NotifyDataDelegate sensorInstance = this.notifyData2ClassMap.get(nDataType);
-        if (sensorInstance == null){
-            return;
+        NotifyDataDelegate sensorInstance = null;
+        sensorInstance = this.notifyData2ClassMap.get(KBTriggerType.TriggerNull);
+
+        if (sensorInstance == null) {
+            sensorInstance = this.notifyData2ClassMap.get(nDataType);
+            if (sensorInstance == null) {
+                return;
+            }
         }
 
         try {
