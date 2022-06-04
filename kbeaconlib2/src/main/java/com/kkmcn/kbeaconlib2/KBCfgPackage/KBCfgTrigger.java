@@ -25,6 +25,11 @@ public class KBCfgTrigger extends KBCfgBase {
     public static final int MAX_TEMPERATURE_VALUE = 1000;
     public static final int MIN_TEMPERATURE_VALUE = -50;
 
+    //PIR repeat detected interval
+    public static final int KBTriggerConditionPIRRepeatRptInterval = 30;
+    public static final int MAX_PIR_REPORT_INTERVAL_VALUE = 3600;
+    public static final int MIN_PIR_REPORT_INTERVAL_VALUE = 5;
+
     //motion
     public static final int DEFAULT_MOTION_SENSITIVITY = 0x2;   //default motion sensitive
     public static final int MAX_MOTION_SENSITIVITY = 126;

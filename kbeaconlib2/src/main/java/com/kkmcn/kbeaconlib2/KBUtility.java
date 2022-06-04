@@ -35,26 +35,6 @@ public class KBUtility {
 
     public static final UUID CHARACTERISTIC_NOTIFICATION_DESCRIPTOR_UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
 
-
-    @TargetApi(Build.VERSION_CODES.M)
-    public static boolean isBluetoothScanningPermission(final Context context) {
-        if (!KBUtility.isMPhone()) {
-            return true;
-        } else {
-            boolean result = true;
-            if (context.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                result = false;
-            }
-            if (context.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                result = false;
-            }
-            if (context.checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
-                result = false;
-            }
-            return result;
-        }
-    }
-
     public static byte[] hexStringToBytes(String hexString){
         if (hexString == null || hexString.equals("")) {
             return null;

@@ -1,5 +1,7 @@
 package com.kkmcn.kbeaconlib2.KBCfgPackage;
 
+import android.annotation.SuppressLint;
+
 import com.kkmcn.kbeaconlib2.UTCTime;
 
 public class KBTimeRange {
@@ -91,6 +93,7 @@ public class KBTimeRange {
         localStartHour = localStartMinute = localEndHour = localEndMinute = 0;
     }
 
+    @SuppressLint("DefaultLocale")
     public String toString()
     {
         return String.format("%02d:%02d ~ %02d:%02d", localStartHour,

@@ -24,4 +24,7 @@ public class KBTriggerType {
 
     public static final int HTHumidityPeriodically= 12;   //Periodically report
 
+    //PIR sensor
+    public static final int PIRBodyInfraredDetected = 13;
+
 }
