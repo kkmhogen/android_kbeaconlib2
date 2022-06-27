@@ -19,7 +19,6 @@ public class KBCfgSensorBase extends KBCfgBase{
 
     private Integer disablePeriod2;
 
-
     public void setSensorType(Integer sensorType) {
         this.sensorType = sensorType;
     }
@@ -29,27 +28,37 @@ public class KBCfgSensorBase extends KBCfgBase{
     }
 
     public KBTimeRange getDisablePeriod0() {
+        if (disablePeriod0 == null){
+            return null;
+        }
         return new KBTimeRange(disablePeriod0);
     }
 
     public KBTimeRange getDisablePeriod1() {
+        if (disablePeriod1 == null){
+            return null;
+        }
+
         return new KBTimeRange(disablePeriod1);
     }
 
     public KBTimeRange getDisablePeriod2() {
+        if (disablePeriod2 == null){
+            return null;
+        }
         return new KBTimeRange(disablePeriod2);
     }
 
-    public void setDisablePeriod0(KBTimeRange sleepTime) {
-        this.disablePeriod0 = sleepTime.toUTCInteger();
+    public void setDisablePeriod0(KBTimeRange period) {
+        this.disablePeriod0 = period.toUTCInteger();
     }
 
-    public void setDisablePeriod1(KBTimeRange sleepTime) {
-        this.disablePeriod1 = sleepTime.toUTCInteger();
+    public void setDisablePeriod1(KBTimeRange period) {
+        this.disablePeriod1 = period.toUTCInteger();
     }
 
-    public void setDisablePeriod2(KBTimeRange sleepTime) {
-        this.disablePeriod2 = sleepTime.toUTCInteger();
+    public void setDisablePeriod2(KBTimeRange period) {
+        this.disablePeriod2 = period.toUTCInteger();
     }
 
     public int updateConfig(HashMap<String,Object> dicts)

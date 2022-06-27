@@ -173,19 +173,19 @@ public class KBCfgCommon extends KBCfgBase{
         return ((basicCapability & 0x100000) > 0);
     }
 
-    //is support humidity sensor
+    //is support cutoff sensor
     public boolean isSupportCutoffSensor()
     {
         return ((basicCapability & 0x10) > 0);
     }
 
-    //is support humidity sensor
+    //is support PIR sensor
     public boolean isSupportPIRSensor()
     {
         return ((basicCapability & 0x20) > 0);
     }
 
-    //is support cutoff trigger
+    //is support trigger
     public boolean isSupportTrigger(int nTriggerType)
     {
         int nTriggerMask = (1 << (nTriggerType-1));

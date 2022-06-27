@@ -15,7 +15,6 @@ public class KBTriggerType {
     //cutoff alarm
     public static final int Cutoff = 7;   //cut off
 
-
     //temp and humidity trigger
     public static final int HTTempAbove = 8;   //temperature above
     public static final int HTTempBelow = 9;   //temperature below

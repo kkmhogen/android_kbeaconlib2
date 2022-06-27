@@ -329,9 +329,13 @@ public class KBeaconsMgr {
             byte[] iBeaconFilter = {0x02, 0x15};
             ScanFilter.Builder filter3 = new ScanFilter.Builder().setManufacturerData(KBUtility.APPLE_MANUFACTURE_ID,
                     iBeaconFilter);
+
+            ScanFilter.Builder filter4 = new ScanFilter.Builder().setManufacturerData(KBUtility.KKM_MANUFACTURE_ID,
+                    null);
             filterList.add(filter1.build());
             filterList.add(filter2.build());
             filterList.add(filter3.build());
+            filterList.add(filter4.build());
 
             scaner.startScan(filterList, scanSetting.build(), mNPhoneCallback);
             mLastScanTick = System.currentTimeMillis();

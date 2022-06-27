@@ -19,13 +19,14 @@ public class KBCfgTrigger extends KBCfgBase {
     public static final int KBTriggerConditionDefaultHumidityRptInterval = 300;
     public static final int MIN_HUMIDITY_RPT_INTERVAL = 3;
     public static final int MAX_HUMIDITY_RPT_INTERVAL = 36000;
+
     //humidity sensor
     public static final int KBTriggerConditionDefaultTemperatureAbove = 60;
     public static final int KBTriggerConditionDefaultTemperatureBelow = -10;
     public static final int MAX_TEMPERATURE_VALUE = 1000;
     public static final int MIN_TEMPERATURE_VALUE = -50;
 
-    //PIR repeat detected interval
+    //PIR  detected interval
     public static final int KBTriggerConditionPIRRepeatRptInterval = 30;
     public static final int MAX_PIR_REPORT_INTERVAL_VALUE = 3600;
     public static final int MIN_PIR_REPORT_INTERVAL_VALUE = 5;

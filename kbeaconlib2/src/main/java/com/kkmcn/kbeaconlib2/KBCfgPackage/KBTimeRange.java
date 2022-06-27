@@ -15,6 +15,14 @@ public class KBTimeRange {
         localStartHour = localStartMinute = localEndHour = localEndMinute = 0;
     }
 
+    public KBTimeRange(byte startHour, byte startMinute, byte endHour, byte endMinute)
+    {
+        localStartHour = startHour;
+        localStartMinute = startMinute;
+        localEndHour = endHour;
+        localEndMinute = endMinute;
+    }
+
     public KBTimeRange(Integer intTime)
     {
         fromUTCInteger(intTime);

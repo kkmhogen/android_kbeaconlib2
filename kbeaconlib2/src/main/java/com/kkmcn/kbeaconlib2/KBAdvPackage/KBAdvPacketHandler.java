@@ -81,6 +81,17 @@ public class KBAdvPacketHandler {
                     nAdvType = KBAdvType.IBeacon;
                 }
             }
+            else
+            {
+                beaconData = record.getManufacturerSpecificData(KBUtility.KKM_MANUFACTURE_ID);
+                if (beaconData != null) {
+                    if (beaconData[0] == 0x21 && beaconData.length >= MIN_SENSOR_ADV_LEN) {
+                        nAdvType = KBAdvType.Sensor;
+                    }else if (beaconData[0] == 0x22 && beaconData.length >= MIN_SYSTEM_ADV_LEN) {
+                        nAdvType = KBAdvType.System;
+                    }
+                }
+            }
         }
         if (record.getServiceData() != null) {
             byte[] eddyData = record.getServiceData(KBUtility.PARCE_UUID_EDDYSTONE);
