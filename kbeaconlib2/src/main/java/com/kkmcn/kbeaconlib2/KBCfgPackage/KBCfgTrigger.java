@@ -9,6 +9,8 @@ public class KBCfgTrigger extends KBCfgBase {
     public static final int DEFAULT_TRIGGER_ADV_TIME = 30;
     public static final int MIN_TRIGGER_ADV_TIME = 2;
     public static final int MAX_TRIGGER_ADV_TIME = 7200;
+    public static final float DEFAULT_TRIGGER_ADV_PERIOD = 400.0f;
+    public static final int DEFAULT_TRIGGER_ADV_POWER = 0;
 
     //temperature sensor
     public static final int KBTriggerConditionDefaultHumidityAbove = 80;
@@ -43,6 +45,8 @@ public class KBCfgTrigger extends KBCfgBase {
     public static final String JSON_FIELD_TRIGGER_ADV_CHANGE_MODE = "trAChg";
     public static final String JSON_FIELD_TRIGGER_ADV_SLOT = "slot";
     public static final String JSON_FIELD_TRIGGER_ADV_TIME = "trATm";
+    public static final String JSON_FIELD_TRIGGER_ADV_PERIOD = "trAPrd";
+    public static final String JSON_FIELD_TRIGGER_ADV_POWER = "trAPwr";
 
     protected Integer triggerIndex;
 
@@ -62,6 +66,12 @@ public class KBCfgTrigger extends KBCfgBase {
 
     //trigger advertise time
     protected Integer triggerAdvTime;
+
+    //trigger advertise period
+    protected Float triggerAdvPeriod;
+
+    //trigger advertise tx power
+    protected Integer triggerAdvTxPower;
 
     public KBCfgTrigger()
     {
@@ -102,6 +112,14 @@ public class KBCfgTrigger extends KBCfgBase {
 
     public Integer getTriggerPara() {
         return triggerPara;
+    }
+
+    public Float getTriggerAdvPeriod() {
+        return triggerAdvPeriod;
+    }
+
+    public Integer getTriggerAdvTxPower() {
+        return triggerAdvTxPower;
     }
 
     public void setTriggerType(Integer triggerType) {
@@ -151,6 +169,28 @@ public class KBCfgTrigger extends KBCfgBase {
     public boolean setTriggerAdvTime(Integer triggerAdvTime) {
         if (triggerAdvTime >= MIN_TRIGGER_ADV_TIME && triggerAdvTime <= MAX_TRIGGER_ADV_TIME) {
             this.triggerAdvTime = triggerAdvTime;
+            return true;
+        }else{
+            return false;
+        }
+    }
+
+    //set trigger adv period, the unit is ms
+    public boolean setTriggerAdvPeriod(Float nAdvPeriod)
+    {
+        if (nAdvPeriod >= KBCfgAdvBase.MIN_ADV_PERIOD) {
+            triggerAdvPeriod = nAdvPeriod;
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    //set trigger adv tx power
+    public boolean setTriggerTxPower(Integer nTxPower)
+    {
+        if (nTxPower >= KBAdvTxPower.RADIO_MIN_TXPOWER && nTxPower <= KBAdvTxPower.RADIO_MAX_TXPOWER) {
+            triggerAdvTxPower = nTxPower;
             return true;
         }else{
             return false;
@@ -211,12 +251,24 @@ public class KBCfgTrigger extends KBCfgBase {
             nUpdateParaNum++;
         }
 
+        nTempValue = (Integer) dicts.get(JSON_FIELD_TRIGGER_ADV_POWER);
+        if (nTempValue != null) {
+            triggerAdvTxPower = nTempValue;
+            nUpdateParaNum++;
+        }
+
+        Float nTempFloat = parseFloat(dicts.get(JSON_FIELD_TRIGGER_ADV_PERIOD));
+        if (nTempFloat != null) {
+            triggerAdvPeriod = nTempFloat;
+            nUpdateParaNum++;
+        }
+
         return nUpdateParaNum;
     }
 
     public HashMap<String, Object> toDictionary()
     {
-        HashMap<String, Object>cfgDicts = new HashMap<String, Object>(4);
+        HashMap<String, Object>cfgDicts = super.toDictionary();
         if (triggerIndex != null)
         {
             cfgDicts.put(JSON_FIELD_TRIGGER_INDEX, triggerIndex);
@@ -250,6 +302,15 @@ public class KBCfgTrigger extends KBCfgBase {
         if (triggerAdvTime != null)
         {
             cfgDicts.put(JSON_FIELD_TRIGGER_ADV_TIME, triggerAdvTime);
+        }
+
+        if (triggerAdvTxPower != null)
+        {
+            cfgDicts.put(JSON_FIELD_TRIGGER_ADV_POWER, triggerAdvTxPower);
+        }
+
+        if (triggerAdvPeriod != null) {
+            cfgDicts.put(JSON_FIELD_TRIGGER_ADV_PERIOD, triggerAdvPeriod);
         }
 
         return cfgDicts;

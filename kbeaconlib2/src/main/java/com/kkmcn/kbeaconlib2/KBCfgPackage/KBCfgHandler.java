@@ -41,7 +41,7 @@ public class KBCfgHandler {
         kbCfgAdvObjects.put(String.valueOf(KBAdvType.System), KBCfgAdvSystem.class);
 
         kbCfgTriggerObjects = new HashMap<>(10);
-        kbCfgTriggerObjects.put(String.valueOf(KBTriggerType.AccMotion), KBCfgTrigger.class);
+        kbCfgTriggerObjects.put(String.valueOf(KBTriggerType.AccMotion), KBCfgTriggerMotion.class);
         kbCfgTriggerObjects.put(String.valueOf(KBTriggerType.TriggerNull), KBCfgTrigger.class);
         kbCfgTriggerObjects.put(String.valueOf(KBTriggerType.BtnLongPress), KBCfgTrigger.class);
         kbCfgTriggerObjects.put(String.valueOf(KBTriggerType.BtnSingleClick), KBCfgTrigger.class);

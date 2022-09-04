@@ -101,7 +101,7 @@ public class KBCfgAdvBase extends KBCfgBase{
     //set adv period, the unit is ms
     public boolean setAdvPeriod(Float nAdvPeriod)
     {
-        if ((nAdvPeriod <= MAX_ADV_PERIOD && nAdvPeriod >= MIN_ADV_PERIOD)) {
+        if (nAdvPeriod >= MIN_ADV_PERIOD) {
             advPeriod = nAdvPeriod;
             return true;
         } else {

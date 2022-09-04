@@ -35,12 +35,16 @@ public class KBCfgCommon extends KBCfgBase{
     public final static String  JSON_FIELD_PWD = "pwd";
     public final static String  JSON_FIELD_MEA_PWR = "meaPwr";
     public final static String  JSON_FIELD_AUTO_POWER_ON = "atPwr";
+    public final static String  JSON_FIELD_MAX_ADV_PERIOD = "maxPrd";
 
     //support adv slot number
     private Integer maxAdvSlot;
 
     //support trigger number
     private Integer maxTriggerNum;
+
+    //support max advertisement period
+    private Float maxAdvPeriod;
 
     private Integer basicCapability;
 
@@ -68,6 +72,13 @@ public class KBCfgCommon extends KBCfgBase{
     public Integer getMaxAdvSlot()
     {
         return maxAdvSlot;
+    }
+
+    public Float getMaxAdvPeriod() {
+        if (maxAdvPeriod != null) {
+            return maxAdvPeriod;
+        }
+        return MAX_ADV_PERIOD_MS;
     }
 
     public Integer getMaxTriggerNum() {
@@ -324,6 +335,12 @@ public class KBCfgCommon extends KBCfgBase{
         nTempValue = (Integer) dicts.get(JSON_FIELD_MAX_TRIGGER_NUM);
         if (nTempValue != null) {
             maxTriggerNum = nTempValue;
+            nUpdateParaNum++;
+        }
+
+        Float nTempFloat = parseFloat(dicts.get(JSON_FIELD_MAX_ADV_PERIOD));
+        if (nTempFloat != null) {
+            maxAdvPeriod = nTempFloat;
             nUpdateParaNum++;
         }
 
