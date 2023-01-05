@@ -26,4 +26,7 @@ public class KBTriggerType {
     //PIR sensor
     public static final int PIRBodyInfraredDetected = 13;
 
+    //Light lux level
+    public static final int LightLUXAbove = 14;   //light lux above
+    public static final int LightLUXBelow = 15;   //light lux below
 }

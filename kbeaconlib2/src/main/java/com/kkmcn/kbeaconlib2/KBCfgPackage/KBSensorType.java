@@ -6,4 +6,5 @@ public class KBSensorType {
     public static final int HTHumidity = 0x2;
     public static final int Cutoff = 0x8;
     public static final int PIR = 0x10;
+    public static final int Light = 0x20;
 }

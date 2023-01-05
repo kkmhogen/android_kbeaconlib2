@@ -7,9 +7,13 @@ import java.util.HashMap;
 public class KBCfgAdvKSensor extends KBCfgAdvBase{
     public static final String JSON_FIELD_SENSOR_HUMIDITY = "ht";
     public static final String JSON_FIELD_SENSOR_AXIS= "axis";
+    public static final String JSON_FIELD_SENSOR_LUX = "lux";
+    public static final String JSON_FIELD_SENSOR_PIR= "pir";
 
     private Boolean htSensorInclude;
     private Boolean axisSensorInclude;
+    private Boolean lightSensorInclude;
+    private Boolean pirSensorInclude;
 
     public KBCfgAdvKSensor()
     {
@@ -19,6 +23,14 @@ public class KBCfgAdvKSensor extends KBCfgAdvBase{
 
     public void setAxisSensorInclude(Boolean axisInclude) {
         this.axisSensorInclude = axisInclude;
+    }
+
+    public void setLightSensorInclude(Boolean lightSensorInclude) {
+        this.lightSensorInclude = lightSensorInclude;
+    }
+
+    public void setPirSensorInclude(Boolean pirSensorInclude) {
+        this.pirSensorInclude = pirSensorInclude;
     }
 
     public Boolean isAxisSensorEnable() {
@@ -31,6 +43,14 @@ public class KBCfgAdvKSensor extends KBCfgAdvBase{
 
     public Boolean isHtSensorInclude() {
         return htSensorInclude;
+    }
+
+    public Boolean isLightSensorInclude() {
+        return lightSensorInclude;
+    }
+
+    public Boolean isPIRSensorInclude() {
+        return pirSensorInclude;
     }
 
     public int updateConfig(HashMap<String,Object>dicts)
@@ -52,6 +72,20 @@ public class KBCfgAdvKSensor extends KBCfgAdvBase{
             nUpdateConfigNum++;
         }
 
+        obj = dicts.get(JSON_FIELD_SENSOR_LUX);
+        if (obj != null)
+        {
+            lightSensorInclude = ((Integer) obj > 0);
+            nUpdateConfigNum++;
+        }
+
+        obj = dicts.get(JSON_FIELD_SENSOR_PIR);
+        if (obj != null)
+        {
+            pirSensorInclude = ((Integer) obj > 0);
+            nUpdateConfigNum++;
+        }
+
         return nUpdateConfigNum;
     }
 
@@ -67,6 +101,16 @@ public class KBCfgAdvKSensor extends KBCfgAdvBase{
         if (axisSensorInclude != null)
         {
             configDicts.put(JSON_FIELD_SENSOR_AXIS, axisSensorInclude ? 1: 0);
+        }
+
+        if (lightSensorInclude != null)
+        {
+            configDicts.put(JSON_FIELD_SENSOR_LUX, lightSensorInclude ? 1: 0);
+        }
+
+        if (pirSensorInclude != null)
+        {
+            configDicts.put(JSON_FIELD_SENSOR_PIR, pirSensorInclude ? 1: 0);
         }
 
         return configDicts;

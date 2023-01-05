@@ -22,6 +22,12 @@ public class KBCfgTriggerMotion extends KBCfgTrigger{
     //the wakeup duration unit is 1/odr
     protected Integer wakeupDuration;
 
+    public KBCfgTriggerMotion()
+    {
+        triggerType = KBTriggerType.AccMotion;
+        triggerIndex = 0;
+    }
+
     public boolean setAccODR(Integer odr) {
         if (odr < ACC_ODR_1_HZ || odr > ACC_ODR_50_HZ) {
             return false;

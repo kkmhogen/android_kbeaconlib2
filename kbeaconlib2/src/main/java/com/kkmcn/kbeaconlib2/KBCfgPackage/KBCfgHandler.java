@@ -54,11 +54,15 @@ public class KBCfgHandler {
         kbCfgTriggerObjects.put(String.valueOf(KBTriggerType.HTHumidityAbove), KBCfgTrigger.class);
         kbCfgTriggerObjects.put(String.valueOf(KBTriggerType.HTHumidityPeriodically), KBCfgTrigger.class);
         kbCfgTriggerObjects.put(String.valueOf(KBTriggerType.PIRBodyInfraredDetected), KBCfgTrigger.class);
+        kbCfgTriggerObjects.put(String.valueOf(KBTriggerType.LightLUXAbove), KBCfgTrigger.class);
+        kbCfgTriggerObjects.put(String.valueOf(KBTriggerType.LightLUXBelow), KBCfgTrigger.class);
 
         kbCfgSensorObjects = new HashMap<>(5);
         kbCfgSensorObjects.put(String.valueOf(KBSensorType.HTHumidity), KBCfgSensorHT.class);
         kbCfgSensorObjects.put(String.valueOf(KBSensorType.Cutoff), KBCfgSensorBase.class);
         kbCfgSensorObjects.put(String.valueOf(KBSensorType.PIR), KBCfgSensorBase.class);
+        kbCfgSensorObjects.put(String.valueOf(KBSensorType.AccMotion), KBCfgSensorAcc.class);
+        kbCfgSensorObjects.put(String.valueOf(KBSensorType.Light), KBCfgSensorLight.class);
     }
 
     public final KBCfgAdvBase getDeviceSlotCfg(int nSlotIndex)

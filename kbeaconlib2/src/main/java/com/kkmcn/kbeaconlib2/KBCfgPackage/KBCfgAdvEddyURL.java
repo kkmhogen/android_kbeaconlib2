@@ -8,7 +8,7 @@ import java.util.HashMap;
 public class KBCfgAdvEddyURL extends KBCfgAdvBase{
 
     public static final String JSON_FIELD_EDDY_URL_ADDR  = "url";
-    public static final String DEFAULT_URL_ADDRESS = "https://www.kkmcn.com/";
+    public static final String DEFAULT_URL_ADDRESS = "https://www.google.com/";
     public static int MAX_URL_LENGTH = 30;
 
     private String url;

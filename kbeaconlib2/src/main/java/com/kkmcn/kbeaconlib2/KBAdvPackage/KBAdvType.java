@@ -17,7 +17,7 @@ public class KBAdvType
     public final static String EddyURLString = "URL";
     public final static String IBeaconString = "iBeacon";
     public final static String SystemString = "System";
-    public final static String InvalidString = "Disable";
+    public final static String InvalidString = "Disabled";
 
     public static String getAdvTypeString(int nAdvType){
         String strAdv = "";

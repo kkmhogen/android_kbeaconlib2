@@ -1708,7 +1708,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
 
     private void handleBeaconIndData(byte[] data)
     {
-        int nDataType = data[0];
+        int nDataType = ((data[0] & 0xFF) & 0x3F);
         NotifyDataDelegate sensorInstance = null;
         sensorInstance = this.notifyData2ClassMap.get(KBTriggerType.TriggerNull);
 
@@ -1776,10 +1776,12 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
                 if (newState == BluetoothProfile.STATE_CONNECTED) {
                     Log.e(LOG_TAG, mac + " onConnectionStateChange success");
                     mMsgHandler.sendEmptyMessageDelayed(MSG_START_REQUST_MAX_MTU, 100);
-                } else{
+                } else if (newState == BluetoothProfile.STATE_DISCONNECTED){
                     Log.e(LOG_TAG, mac + " onConnectionStateChange detected other gatt fail:" + newState );
-                    Message msgCentralEvt = mMsgHandler.obtainMessage(MSG_SYS_CONNECTION_EVT, status, newState);
+                    Message msgCentralEvt = mMsgHandler.obtainMessage(MSG_SYS_CONNECTION_EVT, -1, newState);
                     mMsgHandler.sendMessage(msgCentralEvt);
+                }else{
+                    Log.e(LOG_TAG, mac + " onConnectionStateChange detected unknown state:" + newState );
                 }
             }
         }

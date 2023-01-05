@@ -12,6 +12,7 @@ public class KBAdvPacketSensor extends KBAdvPacketBase{
     private final  static int SENSOR_MASK_ACC_AIX = 0x8;
     private final  static int SENSOR_MASK_CUTOFF = 0x10;
     private final  static int SENSOR_MASK_PIR = 0x20;
+    private final  static int SENSOR_MASK_LUX = 0x40;
 
     private KBAccSensorValue accSensor;
 
@@ -26,6 +27,8 @@ public class KBAdvPacketSensor extends KBAdvPacketBase{
     private Integer version;
 
     private Integer batteryLevel;
+
+    private Integer luxValue;
 
     public int getAdvType()
     {
@@ -64,6 +67,10 @@ public class KBAdvPacketSensor extends KBAdvPacketBase{
 
     public Integer getPirIndication() {
         return pirIndication;
+    }
+
+    public Integer getLuxValue() {
+        return luxValue;
     }
 
     public boolean parseAdvPacket(byte[] beaconData)
@@ -156,6 +163,17 @@ public class KBAdvPacketSensor extends KBAdvPacketBase{
             pirIndication = (int)beaconData[nSrvIndex++];
         }else{
             pirIndication = null;
+        }
+
+        //get lux value
+        if ((nSensorMask & SENSOR_MASK_LUX) > 0) {
+            if (nSrvIndex > (beaconData.length - 2)) {
+                return false;
+            }
+            luxValue = ((beaconData[nSrvIndex++] & 0xFF) << 8);
+            luxValue += (beaconData[nSrvIndex++] & 0xFF);
+        }else{
+            luxValue = null;
         }
 
         return true;

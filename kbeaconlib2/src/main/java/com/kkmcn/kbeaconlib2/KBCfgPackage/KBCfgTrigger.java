@@ -33,6 +33,10 @@ public class KBCfgTrigger extends KBCfgBase {
     public static final int MAX_PIR_REPORT_INTERVAL_VALUE = 3600;
     public static final int MIN_PIR_REPORT_INTERVAL_VALUE = 5;
 
+    //Light level
+    public static final int MAX_LIGHT_LEVEL_VALUE = 65535;
+    public static final int MIN_LIGHT_LEVEL_VALUE = 1;
+
     //motion
     public static final int DEFAULT_MOTION_SENSITIVITY = 0x2;   //default motion sensitive
     public static final int MAX_MOTION_SENSITIVITY = 126;
@@ -192,7 +196,7 @@ public class KBCfgTrigger extends KBCfgBase {
         if (nTxPower >= KBAdvTxPower.RADIO_MIN_TXPOWER && nTxPower <= KBAdvTxPower.RADIO_MAX_TXPOWER) {
             triggerAdvTxPower = nTxPower;
             return true;
-        }else{
+        } else {
             return false;
         }
     }

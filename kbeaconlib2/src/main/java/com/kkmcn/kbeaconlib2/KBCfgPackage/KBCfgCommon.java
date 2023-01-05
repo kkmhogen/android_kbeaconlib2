@@ -29,6 +29,8 @@ public class KBCfgCommon extends KBCfgBase{
     public final static String  JSON_FIELD_MAX_TX_PWR = "maxPwr";
     public final static String  JSON_FIELD_BASIC_CAPABILITY = "bCap";
     public final static String JSON_FIELD_TRIG_CAPABILITY = "trCap";
+    public final static String JSON_FIELD_BATTERY_PERCENT = "btPt";
+
 
     //configurable parameters
     public final static String  JSON_FIELD_DEV_NAME = "name";
@@ -53,6 +55,8 @@ public class KBCfgCommon extends KBCfgBase{
     private Integer maxTxPower;
 
     private Integer minTxPower;
+
+    private Integer batteryPercent;
 
     private String model;
 
@@ -194,6 +198,12 @@ public class KBCfgCommon extends KBCfgBase{
     public boolean isSupportPIRSensor()
     {
         return ((basicCapability & 0x20) > 0);
+    }
+
+    //is support light sensor
+    public boolean isSupportLightSensor()
+    {
+        return ((basicCapability & 0x40) > 0);
     }
 
     //is support trigger
@@ -387,6 +397,13 @@ public class KBCfgCommon extends KBCfgBase{
         nTempValue = (Integer) dicts.get(JSON_FIELD_AUTO_POWER_ON);
         if (nTempValue != null) {
             alwaysPowerOn = nTempValue > 0;
+            nUpdateParaNum++;
+        }
+
+        //battery percent
+        batteryPercent = (Integer) dicts.get(JSON_FIELD_BATTERY_PERCENT);
+        if (nTempValue != null) {
+            batteryPercent = nTempValue;
             nUpdateParaNum++;
         }
 
