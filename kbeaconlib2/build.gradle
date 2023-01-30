@@ -1,11 +1,9 @@
 plugins {
     id 'com.android.library'
 }
-apply from: 'maven-push.gradle'
 
 android {
     compileSdkVersion 32
-    buildToolsVersion "30.0.1"
 
     defaultConfig {
         minSdkVersion 21
