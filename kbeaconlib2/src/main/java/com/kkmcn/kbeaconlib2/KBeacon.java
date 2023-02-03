@@ -1,5 +1,7 @@
 package com.kkmcn.kbeaconlib2;
 
+import android.Manifest;
+import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
@@ -9,9 +11,13 @@ import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothProfile;
 import android.bluetooth.le.ScanRecord;
 import android.content.Context;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
+
+import androidx.core.app.ActivityCompat;
 
 import com.kkmcn.kbeaconlib2.KBAdvPackage.KBAdvPacketBase;
 import com.kkmcn.kbeaconlib2.KBAdvPackage.KBAdvPacketHandler;
@@ -183,6 +189,12 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         mBleDevice = bleDevice;
     }
 
+    //get ble device
+    public BluetoothDevice getBleDevice() 
+    {
+        return mBleDevice;
+    }
+
     //get mac address
     public String getMac()
     {
@@ -319,6 +331,11 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         {
             delegate = connectCallback;
 
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                if (ActivityCompat.checkSelfPermission(mContext, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                    return false;
+                }
+            }
             mGattConnection = mBleDevice.connectGatt(mContext, false, mGattCallback);
             Log.v(LOG_TAG, "start connect to device " + mac);
 
@@ -839,6 +856,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
     }
 
 
+    @SuppressLint("MissingPermission")
     private void handleCentralBLEEvent(int status, int nNewState)
     {
         if (status == BluetoothGatt.GATT_SUCCESS)
@@ -1053,6 +1071,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         this.startWriteCfgValue(data);
     }
 
+    @SuppressLint("MissingPermission")
     private void clearGattResource(int nReason)
     {
         if (state == KBConnState.Disconnecting)
@@ -1066,6 +1085,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         }
     }
 
+    @SuppressLint("MissingPermission")
     private void closeBeacon(int nReason)
     {
         mCloseReason = nReason;
@@ -1099,6 +1119,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         }
     }
 
+    @SuppressLint("MissingPermission")
     private boolean startEnableNotification(UUID srvUUID, UUID charUUID)
     {
         BluetoothGattCharacteristic characteristic = getCharacteristicByID(srvUUID,
@@ -1122,6 +1143,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         return mGattConnection.writeDescriptor(descriptor);
     }
 
+    @SuppressLint("MissingPermission")
     private boolean startEnableIndication(UUID srvUUID, UUID charUUID, boolean bEnable)
     {
         BluetoothGattCharacteristic characteristic = getCharacteristicByID(srvUUID,
@@ -1587,7 +1609,8 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         return true;
     }
 	
-	 //write configruation to beacon
+	 //write configuration to beacon
+    @SuppressLint("MissingPermission")
     private boolean startWriteCfgValue(byte[] data)
     {
         BluetoothGattCharacteristic characteristic = getCharacteristicByID(KBUtility.KB_CFG_SERVICE_UUID, KBUtility.KB_WRITE_CHAR_UUID);
@@ -1628,6 +1651,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
     }
 
     private Handler mMsgHandler = new Handler(new Handler.Callback() {
+        @SuppressLint("MissingPermission")
         @Override
         public boolean handleMessage(Message msg) {
             switch (msg.what) {
