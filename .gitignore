@@ -3,7 +3,7 @@
 *.aar
 *.ap_
 *.aab
-gradle.properties
+/gradle.properties
 
 # Files for the ART/Dalvik VM
 *.dex
@@ -57,7 +57,6 @@ gradle-app.setting
 # Gradle Signing
 signing.properties
 trestle.keystore
-gradle.properties
 
 # IntelliJ
 *.iml
