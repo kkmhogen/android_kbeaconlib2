@@ -60,9 +60,11 @@ public class KBCfgHandler {
         kbCfgSensorObjects = new HashMap<>(5);
         kbCfgSensorObjects.put(String.valueOf(KBSensorType.HTHumidity), KBCfgSensorHT.class);
         kbCfgSensorObjects.put(String.valueOf(KBSensorType.Cutoff), KBCfgSensorBase.class);
-        kbCfgSensorObjects.put(String.valueOf(KBSensorType.PIR), KBCfgSensorBase.class);
+        kbCfgSensorObjects.put(String.valueOf(KBSensorType.PIR), KBCfgSensorPIR.class);
         kbCfgSensorObjects.put(String.valueOf(KBSensorType.AccMotion), KBCfgSensorAcc.class);
         kbCfgSensorObjects.put(String.valueOf(KBSensorType.Light), KBCfgSensorLight.class);
+        kbCfgSensorObjects.put(String.valueOf(KBSensorType.VOC), KBCfgSensorVOC.class);
+        kbCfgSensorObjects.put(String.valueOf(KBSensorType.CO2), KBCfgSensorCO2.class);
     }
 
     public final KBCfgAdvBase getDeviceSlotCfg(int nSlotIndex)
@@ -268,15 +270,15 @@ public class KBCfgHandler {
         return null;
     }
 
-    private KBCfgAdvBase updateDeviceCfgAdvObjFromParas(HashMap<String, Object> advPara)
+    private KBCfgAdvBase updateDeviceCfgAdvObjFromParas(JSONObject advPara) throws JSONException
     {
-        Integer advType = (Integer) advPara.get(KBCfgAdvBase.JSON_FIELD_BEACON_TYPE);
-        Integer slotIndex = (Integer) advPara.get(KBCfgAdvBase.JSON_FIELD_SLOT);
-        if (slotIndex == null){
+        if (!advPara.has(KBCfgAdvBase.JSON_FIELD_BEACON_TYPE) || !advPara.has(KBCfgAdvBase.JSON_FIELD_SLOT)){
             Log.e(LOG_TAG, "update device configuration failed during slot index is null");
             return null;
         }
 
+        Integer advType = (Integer) advPara.get(KBCfgAdvBase.JSON_FIELD_BEACON_TYPE);
+        Integer slotIndex = (Integer) advPara.get(KBCfgAdvBase.JSON_FIELD_SLOT);
         KBCfgAdvBase deviceAdvObj = getDeviceAdvSlotObj(slotIndex);
         if (deviceAdvObj != null && Objects.equals(advType, deviceAdvObj.getAdvType())) {
            deviceAdvObj.updateConfig(advPara);
@@ -300,14 +302,16 @@ public class KBCfgHandler {
         return deviceAdvObj;
     }
 
-    private KBCfgTrigger updateDeviceCfgTriggerFromParas(HashMap<String, Object> triggerPara)
+    private KBCfgTrigger updateDeviceCfgTriggerFromParas(JSONObject triggerPara) throws JSONException
     {
-        Integer triggerIdx = (Integer) triggerPara.get(KBCfgTrigger.JSON_FIELD_TRIGGER_INDEX);
-        Integer triggerType = (Integer) triggerPara.get(KBCfgTrigger.JSON_FIELD_TRIGGER_TYPE);
-        if (triggerIdx == null || triggerType == null){
-            Log.e(LOG_TAG, "update device configuration failed during slot index is null");
+        if (!triggerPara.has(KBCfgTrigger.JSON_FIELD_TRIGGER_INDEX)
+                || !triggerPara.has(KBCfgTrigger.JSON_FIELD_TRIGGER_TYPE)){
+            Log.e(LOG_TAG, "update device configuration failed during trigger index is null");
             return null;
         }
+
+        Integer triggerIdx = (Integer) triggerPara.get(KBCfgTrigger.JSON_FIELD_TRIGGER_INDEX);
+        Integer triggerType = (Integer) triggerPara.get(KBCfgTrigger.JSON_FIELD_TRIGGER_TYPE);
 
         KBCfgTrigger deviceTriggerObj = getDeviceTriggerObj(triggerIdx);
         if (deviceTriggerObj != null && deviceTriggerObj.getTriggerType().equals(triggerType)) {
@@ -332,14 +336,14 @@ public class KBCfgHandler {
         return deviceTriggerObj;
     }
 
-    private KBCfgSensorBase updateDeviceCfgSensorFromParas(HashMap<String, Object> sensorPara)
+    private KBCfgSensorBase updateDeviceCfgSensorFromParas(JSONObject sensorPara) throws JSONException
     {
-        Integer sensorType = (Integer) sensorPara.get(KBCfgSensorBase.JSON_SENSOR_TYPE);
-        if (sensorType == null){
+        if (!sensorPara.has(KBCfgSensorBase.JSON_SENSOR_TYPE)){
             Log.e(LOG_TAG, "update device configuration failed during sensor type is null");
             return null;
         }
 
+        Integer sensorType = sensorPara.getInt(KBCfgSensorBase.JSON_SENSOR_TYPE);
         KBCfgSensorBase deviceSensorObj = getDeviceSensorCfg(sensorType);
         if (deviceSensorObj == null) {
             deviceSensorObj = createCfgSensorObject(sensorType);
@@ -429,17 +433,14 @@ public class KBCfgHandler {
     }
 
     //create adv objects from JSON string
-    private void initUpdateDeviceCfgFromJsonObject(JSONObject jsonObj, boolean bInit)
+    private void initUpdateDeviceCfgFromJsonObject(JSONObject jsonPara, boolean bInit)
     {
         try {
-            HashMap<String, Object> advParas = new HashMap<>(10);
-            KBCfgBase.JsonObject2HashMap(jsonObj, advParas);
-
             //adv common
             if (bInit || kbDeviceAdvCommonPara == null){
                 kbDeviceAdvCommonPara = new KBCfgCommon();
             }
-            kbDeviceAdvCommonPara.updateConfig(advParas);
+            kbDeviceAdvCommonPara.updateConfig(jsonPara);
 
             if (bInit){
                 kbDeviceCfgAdvSlotLists.clear();
@@ -448,42 +449,30 @@ public class KBCfgHandler {
             }
 
             //update adv paras
-            if (advParas.containsKey(ADV_OBJ_PARAS)) {
-                JSONArray advArrays = (JSONArray) advParas.get(ADV_OBJ_PARAS);
-                if (advArrays != null) {
-                    for (int i = 0; i < advArrays.length(); i++) {
-                        JSONObject jsonObject = advArrays.getJSONObject(i);
-                        HashMap<String, Object> slotPara = new HashMap<>(10);
-                        KBCfgBase.JsonObject2HashMap(jsonObject, slotPara);
-                        updateDeviceCfgAdvObjFromParas(slotPara);
-                    }
+            if (jsonPara.has(ADV_OBJ_PARAS)) {
+                JSONArray advArrays = jsonPara.getJSONArray(ADV_OBJ_PARAS);
+                for (int i = 0; i < advArrays.length(); i++)
+                {
+                    JSONObject jsonObject = advArrays.getJSONObject(i);
+                    updateDeviceCfgAdvObjFromParas(jsonObject);
                 }
             }
 
             //trigger objects
-            if (advParas.containsKey(TRIGGER_OBJ_PARAS)) {
-                JSONArray advArrays = (JSONArray) advParas.get(TRIGGER_OBJ_PARAS);
-                if (advArrays != null) {
-                    for (int i = 0; i < advArrays.length(); i++) {
-                        JSONObject jsonObject = advArrays.getJSONObject(i);
-                        HashMap<String, Object> triggerPara = new HashMap<>(10);
-                        KBCfgBase.JsonObject2HashMap(jsonObject, triggerPara);
-                        updateDeviceCfgTriggerFromParas(triggerPara);
-                    }
+            if (jsonPara.has(TRIGGER_OBJ_PARAS)) {
+                JSONArray advArrays = jsonPara.getJSONArray(TRIGGER_OBJ_PARAS);
+                for (int i = 0; i < advArrays.length(); i++) {
+                    JSONObject jsonObject = advArrays.getJSONObject(i);
+                    updateDeviceCfgTriggerFromParas(jsonObject);
                 }
             }
 
             //sensor objects
-            if (advParas.containsKey(SENSOR_OBJ_PARAS)) {
-                JSONArray advArrays = (JSONArray) advParas.get(SENSOR_OBJ_PARAS);
-                if (advArrays != null) {
-                    for (int i = 0; i < advArrays.length(); i++) {
-                        JSONObject jsonObject = advArrays.getJSONObject(i);
-                        HashMap<String, Object> triggerPara = new HashMap<>(10);
-                        KBCfgBase.JsonObject2HashMap(jsonObject, triggerPara);
-
-                        updateDeviceCfgSensorFromParas(triggerPara);
-                    }
+            if (jsonPara.has(SENSOR_OBJ_PARAS)) {
+                JSONArray advArrays = jsonPara.getJSONArray(SENSOR_OBJ_PARAS);
+                for (int i = 0; i < advArrays.length(); i++) {
+                    JSONObject jsonObject = advArrays.getJSONObject(i);
+                    updateDeviceCfgSensorFromParas(jsonObject);
                 }
             }
         }
@@ -494,12 +483,12 @@ public class KBCfgHandler {
     }
 
     //update configruation
-    public void updateDeviceConfig(ArrayList<KBCfgBase> newCfgArray)
+    public void updateDeviceConfig(ArrayList<KBCfgBase> newCfgArray) throws JSONException
     {
         for (KBCfgBase obj: newCfgArray)
         {
-            HashMap<String, Object> updatePara = obj.toDictionary();
-            if (updatePara == null || updatePara.size() == 0)
+            JSONObject updatePara = obj.toJSONObject();
+            if (updatePara.length() == 0)
             {
                 Log.e(LOG_TAG, "config data is null");
                 continue;
@@ -516,26 +505,23 @@ public class KBCfgHandler {
             //check if adv para
             if (obj instanceof KBCfgAdvBase)
             {
-                KBCfgAdvBase advBase = (KBCfgAdvBase)obj;
-                updateDeviceCfgAdvObjFromParas(advBase.toDictionary());
+                updateDeviceCfgAdvObjFromParas(obj.toJSONObject());
             }
 
             //check if trigger para
             if (obj instanceof KBCfgTrigger) {
-                KBCfgTrigger triggerBase = (KBCfgTrigger)obj;
-                updateDeviceCfgTriggerFromParas(triggerBase.toDictionary());
+                updateDeviceCfgTriggerFromParas(obj.toJSONObject());
             }
 
             //check if trigger para
             if (obj instanceof KBCfgSensorBase) {
-                KBCfgSensorBase sensorBase = (KBCfgSensorBase)obj;
-                updateDeviceCfgSensorFromParas(sensorBase.toDictionary());
+                updateDeviceCfgSensorFromParas(obj.toJSONObject());
             }
         }
     }
 
     //translate object to json string for download to beacon
-    public static String objectsToJsonString(ArrayList<KBCfgBase> cfgObjects)
+    public static String objectsToJsonString(ArrayList<KBCfgBase> cfgObjects) throws JSONException
     {
         JSONObject jsonMsgObject = new JSONObject();
         JSONArray jsonAdvParaArray = new JSONArray();
@@ -544,8 +530,8 @@ public class KBCfgHandler {
 
         for (KBCfgBase obj: cfgObjects)
         {
-            HashMap<String, Object> updatePara = obj.toDictionary();
-            if (updatePara == null || updatePara.size() == 0)
+            JSONObject updatePara = obj.toJSONObject();
+            if (updatePara.length() == 0)
             {
                 Log.e(LOG_TAG, "config data is null");
                 continue;
@@ -553,26 +539,20 @@ public class KBCfgHandler {
 
             //add common object
             if (obj instanceof KBCfgCommon) {
-                KBCfgBase.HashMap2JsonObject(obj.toDictionary(), jsonMsgObject);
+                jsonMsgObject = updatePara;
             }
             else if (obj instanceof KBCfgAdvBase)
             {
                 //add adv cfg object
-                KBCfgAdvBase advBase = (KBCfgAdvBase)obj;
-                JSONObject jsonObject = advBase.toJsonObject();
-                jsonAdvParaArray.put(jsonObject);
+                jsonAdvParaArray.put(updatePara);
             }
             else if (obj instanceof KBCfgTrigger) {
                 //add trigger cfg object
-                KBCfgTrigger triggerBase = (KBCfgTrigger)obj;
-                JSONObject jsonObject = triggerBase.toJsonObject();
-                jsonTriggerParaArray.put(jsonObject);
+                jsonTriggerParaArray.put(updatePara);
             }
             else if (obj instanceof KBCfgSensorBase) {
                 //add trigger cfg object
-                KBCfgSensorBase sensorBase = (KBCfgSensorBase)obj;
-                JSONObject jsonObject = sensorBase.toJsonObject();
-                jsonSensorParaArray.put(jsonObject);
+                jsonSensorParaArray.put(updatePara);
             }
         }
 
@@ -607,10 +587,14 @@ public class KBCfgHandler {
             KBCfgBase.HashMap2JsonObject(paraDicts, jsonObj);
             if (jsonObj.length() > 0)
             {
-                return jsonObj.toString();
+                return jsonObj.toString().replace("\\", "");
             }
         }
 
         return null;
+    }
+
+    public static String cmdParaToJsonString(JSONObject jsonObj) {
+        return jsonObj.toString().replace("\\", "");
     }
 }

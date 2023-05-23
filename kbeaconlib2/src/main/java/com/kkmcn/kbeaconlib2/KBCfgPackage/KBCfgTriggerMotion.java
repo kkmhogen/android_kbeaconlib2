@@ -1,5 +1,8 @@
 package com.kkmcn.kbeaconlib2.KBCfgPackage;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.HashMap;
 
 public class KBCfgTriggerMotion extends KBCfgTrigger{
@@ -54,31 +57,28 @@ public class KBCfgTriggerMotion extends KBCfgTrigger{
         return wakeupDuration;
     }
 
-    public int updateConfig(HashMap<String, Object> dicts)
+    public int updateConfig(JSONObject dicts) throws JSONException
     {
         int nUpdateParaNum = super.updateConfig(dicts);
-        Integer nTempValue = null;
 
-        nTempValue = (Integer)dicts.get(JSON_FIELD_TRIGGER_MOTION_ACC_ODR);
-        if (nTempValue != null)
+        if (dicts.has(JSON_FIELD_TRIGGER_MOTION_ACC_ODR))
         {
-            accODR = nTempValue;
+            accODR = dicts.getInt(JSON_FIELD_TRIGGER_MOTION_ACC_ODR);
             nUpdateParaNum++;
         }
 
-        nTempValue = (Integer)dicts.get(JSON_FIELD_TRIGGER_MOTION_DURATION);
-        if (nTempValue != null)
+        if (dicts.has(JSON_FIELD_TRIGGER_MOTION_DURATION))
         {
-            wakeupDuration = nTempValue;
+            wakeupDuration = dicts.getInt(JSON_FIELD_TRIGGER_MOTION_DURATION);
             nUpdateParaNum++;
         }
 
         return nUpdateParaNum;
     }
 
-    public HashMap<String, Object> toDictionary()
+    public JSONObject toJSONObject() throws JSONException
     {
-        HashMap<String, Object>cfgDicts = super.toDictionary();
+        JSONObject cfgDicts = super.toJSONObject();
         if (accODR != null)
         {
             cfgDicts.put(JSON_FIELD_TRIGGER_MOTION_ACC_ODR, accODR);

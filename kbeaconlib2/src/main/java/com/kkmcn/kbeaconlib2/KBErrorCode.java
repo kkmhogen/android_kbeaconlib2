@@ -9,6 +9,8 @@ public class KBErrorCode
     public static final int CfgReadNull = 0x5;
     public static final int CfgStateError = 0x6;
     public static final int CfgNotSupport = 0x8;
+    public static final int CfgJSONError = 0x9;
+    public static final int CfgParseSensorMsgFailed = 0x10;
 
     public static final int ParseSensorInfoResponseFailed = 0x501;
     public static final int ParseSensorDataResponseFailed = 0x502;

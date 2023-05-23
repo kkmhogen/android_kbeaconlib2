@@ -2,6 +2,9 @@ package com.kkmcn.kbeaconlib2.KBCfgPackage;
 
 import com.kkmcn.kbeaconlib2.UTCTime;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.HashMap;
 
 public class KBCfgSensorBase extends KBCfgBase{
@@ -9,6 +12,9 @@ public class KBCfgSensorBase extends KBCfgBase{
     public static final String JSON_SENSOR_DISABLE_PERIOD0 = "dPrd0";
     public static final String JSON_SENSOR_DISABLE_PERIOD1 = "dPrd1";
     public static final String JSON_SENSOR_DISABLE_PERIOD2 = "dPrd2";
+
+    public static final String JSON_SENSOR_TYPE_LOG_ENABLE = "log";
+    public static final String JSON_SENSOR_TYPE_MEASURE_INTERVAL = "msItvl";
 
     //sensor type
     protected Integer sensorType;
@@ -61,44 +67,40 @@ public class KBCfgSensorBase extends KBCfgBase{
         this.disablePeriod2 = period.toUTCInteger();
     }
 
-    public int updateConfig(HashMap<String,Object> dicts)
+    public int updateConfig(JSONObject dicts) throws JSONException
     {
         int nUpdateConfigNum = super.updateConfig(dicts);
         Object obj;
 
-        obj = dicts.get(JSON_SENSOR_TYPE);
-        if (obj != null)
+        if (dicts.has(JSON_SENSOR_TYPE))
         {
-            sensorType = (Integer) obj;
+            sensorType = (Integer) dicts.get(JSON_SENSOR_TYPE);
             nUpdateConfigNum++;
         }
 
-        obj = dicts.get(JSON_SENSOR_DISABLE_PERIOD0);
-        if (obj != null)
+        if (dicts.has(JSON_SENSOR_DISABLE_PERIOD0))
         {
-            disablePeriod0 = (Integer) obj;
+            disablePeriod0 = (Integer) dicts.get(JSON_SENSOR_DISABLE_PERIOD0);
             nUpdateConfigNum++;
         }
 
-        obj = dicts.get(JSON_SENSOR_DISABLE_PERIOD1);
-        if (obj != null)
+        if (dicts.has(JSON_SENSOR_DISABLE_PERIOD1))
         {
-            disablePeriod1 = (Integer) obj;
+            disablePeriod1 = (Integer) dicts.get(JSON_SENSOR_DISABLE_PERIOD1);
             nUpdateConfigNum++;
         }
 
-        obj = dicts.get(JSON_SENSOR_DISABLE_PERIOD2);
-        if (obj != null)
+        if (dicts.has(JSON_SENSOR_DISABLE_PERIOD2))
         {
-            disablePeriod2 = (Integer) obj;
+            disablePeriod2 = (Integer) dicts.get(JSON_SENSOR_DISABLE_PERIOD2);
             nUpdateConfigNum++;
         }
 
         return nUpdateConfigNum;
     }
 
-    public HashMap<String, Object> toDictionary() {
-        HashMap<String, Object> configDicts = super.toDictionary();
+    public JSONObject toJSONObject() throws JSONException {
+        JSONObject configDicts = super.toJSONObject();
         if (sensorType != null)
         {
             configDicts.put(JSON_SENSOR_TYPE, sensorType);

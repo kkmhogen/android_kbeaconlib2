@@ -19,76 +19,17 @@ public abstract class KBCfgBase{
     public final static String JSON_FIELD_SUBTYPE = "type";
 
 
-    public int updateConfig(HashMap<String, Object> dicts)
+    public int updateConfig(JSONObject dicts) throws JSONException
     {
         return 0;
     }
 
-    public HashMap<String, Object> toDictionary()
+    public JSONObject toJSONObject() throws JSONException
     {
-        return new HashMap<>(10);
+        return new JSONObject();
     }
 
     protected KBCfgBase(){
-    }
-
-    public JSONObject toJsonObject()
-    {
-        HashMap<String, Object> paraMap = toDictionary();
-        JSONObject jo = new JSONObject();
-        for (Map.Entry<String, Object> entry : paraMap.entrySet()) {
-            try {
-                jo.put((String)entry.getKey(), entry.getValue());
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-        }
-
-        return jo;
-    }
-
-    public static void JsonString2HashMap(String  strJsonMsg, Map<String, Object> rstList) {
-        JSONObject mRspJason;
-        try
-        {
-            mRspJason = new JSONObject(strJsonMsg);
-            JsonObject2HashMap(mRspJason, rstList);
-        }
-        catch(JSONException excp)
-        {
-            Log.e(LOG_TAG, "Parse Jason network command response failed");
-        }
-    }
-
-    public static void JsonObject2HashMap(JSONObject jo, Map<String, Object> rstList) {
-        for (Iterator<String> keys = jo.keys(); keys.hasNext();) {
-            try {
-                String key1 = keys.next();
-                rstList.put(key1, jo.get(key1));
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-    public static void HashMap2JsonObject( Map<String, Object> paraMap, JSONObject jo) {
-        for (Map.Entry<String, Object> entry : paraMap.entrySet()) {
-            try {
-                jo.put((String)entry.getKey(), entry.getValue());
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-    public static String HashMap2JsonString( Map<String, Object> paraMap) {
-        JSONObject jsonObj = new JSONObject();
-        KBCfgBase.HashMap2JsonObject(paraMap, jsonObj);
-        if (jsonObj.length() > 0){
-            return jsonObj.toString();
-        }else{
-            return null;
-        }
     }
 
     public Long parseLong(Object nData)
@@ -122,4 +63,25 @@ public abstract class KBCfgBase{
 
         return parseData;
     }
+
+    public static void HashMap2JsonObject( Map<String, Object> paraMap, JSONObject jo) {
+        for (Map.Entry<String, Object> entry : paraMap.entrySet()) {
+            try {
+                jo.put((String)entry.getKey(), entry.getValue());
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public static String HashMap2JsonString( Map<String, Object> paraMap) {
+        JSONObject jsonObj = new JSONObject();
+        KBCfgBase.HashMap2JsonObject(paraMap, jsonObj);
+        if (jsonObj.length() > 0){
+            return jsonObj.toString();
+        }else{
+            return null;
+        }
+    }
+
 }

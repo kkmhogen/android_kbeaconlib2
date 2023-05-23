@@ -2,6 +2,9 @@ package com.kkmcn.kbeaconlib2.KBCfgPackage;
 
 import com.kkmcn.kbeaconlib2.KBException;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.HashMap;
 
 public class KBCfgTrigger extends KBCfgBase {
@@ -201,78 +204,69 @@ public class KBCfgTrigger extends KBCfgBase {
         }
     }
 
-    public int updateConfig(HashMap<String, Object> dicts)
+    public int updateConfig(JSONObject dicts) throws JSONException
     {
         int nUpdateParaNum = super.updateConfig(dicts);
         Integer nTempValue = null;
 
-        nTempValue = (Integer)dicts.get(JSON_FIELD_TRIGGER_INDEX);
-        if (nTempValue != null)
+        if (dicts.has(JSON_FIELD_TRIGGER_INDEX))
         {
-            triggerIndex = nTempValue;
+            triggerIndex = dicts.getInt(JSON_FIELD_TRIGGER_INDEX);
             nUpdateParaNum++;
         }
 
-        nTempValue = (Integer)dicts.get(JSON_FIELD_TRIGGER_TYPE);
-        if (nTempValue != null)
+        if (dicts.has(JSON_FIELD_TRIGGER_TYPE))
         {
-            triggerType = nTempValue;
+            triggerType = dicts.getInt(JSON_FIELD_TRIGGER_TYPE);
             nUpdateParaNum++;
         }
 
-        nTempValue = (Integer)dicts.get(JSON_FIELD_TRIGGER_ACTION);
-        if (nTempValue != null)
+        if (dicts.has(JSON_FIELD_TRIGGER_ACTION))
         {
-            triggerAction = nTempValue;
+            triggerAction = dicts.getInt(JSON_FIELD_TRIGGER_ACTION);
             nUpdateParaNum++;
         }
 
-        nTempValue = (Integer)dicts.get(JSON_FIELD_TRIGGER_ADV_CHANGE_MODE);
-        if (nTempValue != null)
+        if (dicts.has(JSON_FIELD_TRIGGER_ADV_CHANGE_MODE))
         {
-            triggerAdvChangeMode = nTempValue;
+            triggerAdvChangeMode = dicts.getInt(JSON_FIELD_TRIGGER_ADV_CHANGE_MODE);
             nUpdateParaNum++;
         }
 
-        nTempValue = (Integer)dicts.get(JSON_FIELD_TRIGGER_ADV_SLOT);
-        if (nTempValue != null)
+        if (dicts.has(JSON_FIELD_TRIGGER_ADV_SLOT))
         {
-            triggerAdvSlot = nTempValue;
+            triggerAdvSlot = dicts.getInt(JSON_FIELD_TRIGGER_ADV_SLOT);
             nUpdateParaNum++;
         }
 
-        nTempValue = (Integer)dicts.get(JSON_FIELD_TRIGGER_PARA);
-        if (nTempValue != null)
+        if (dicts.has(JSON_FIELD_TRIGGER_PARA))
         {
-            triggerPara = nTempValue;
+            triggerPara = dicts.getInt(JSON_FIELD_TRIGGER_PARA);
             nUpdateParaNum++;
         }
 
-        nTempValue = (Integer)dicts.get(JSON_FIELD_TRIGGER_ADV_TIME);
-        if (nTempValue != null)
+        if (dicts.has(JSON_FIELD_TRIGGER_ADV_TIME))
         {
-            triggerAdvTime = nTempValue;
+            triggerAdvTime = dicts.getInt(JSON_FIELD_TRIGGER_ADV_TIME);
             nUpdateParaNum++;
         }
 
-        nTempValue = (Integer) dicts.get(JSON_FIELD_TRIGGER_ADV_POWER);
-        if (nTempValue != null) {
-            triggerAdvTxPower = nTempValue;
+        if (dicts.has(JSON_FIELD_TRIGGER_ADV_POWER)) {
+            triggerAdvTxPower = dicts.getInt(JSON_FIELD_TRIGGER_ADV_POWER);
             nUpdateParaNum++;
         }
 
-        Float nTempFloat = parseFloat(dicts.get(JSON_FIELD_TRIGGER_ADV_PERIOD));
-        if (nTempFloat != null) {
-            triggerAdvPeriod = nTempFloat;
+        if (dicts.has(JSON_FIELD_TRIGGER_ADV_PERIOD)) {
+            triggerAdvPeriod = parseFloat(dicts.get(JSON_FIELD_TRIGGER_ADV_PERIOD));;
             nUpdateParaNum++;
         }
 
         return nUpdateParaNum;
     }
 
-    public HashMap<String, Object> toDictionary()
+    public JSONObject toJSONObject() throws JSONException
     {
-        HashMap<String, Object>cfgDicts = super.toDictionary();
+        JSONObject cfgDicts = super.toJSONObject();
         if (triggerIndex != null)
         {
             cfgDicts.put(JSON_FIELD_TRIGGER_INDEX, triggerIndex);

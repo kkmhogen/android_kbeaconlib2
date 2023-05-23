@@ -13,6 +13,8 @@ public class KBAdvPacketSensor extends KBAdvPacketBase{
     private final  static int SENSOR_MASK_CUTOFF = 0x10;
     private final  static int SENSOR_MASK_PIR = 0x20;
     private final  static int SENSOR_MASK_LUX = 0x40;
+    private final  static int SENSOR_MASK_VOC = 0x80;
+    private final  static int SENSOR_MASK_CO2 = 0x200;
 
     private KBAccSensorValue accSensor;
 
@@ -24,11 +26,16 @@ public class KBAdvPacketSensor extends KBAdvPacketBase{
 
     private Float humidity;
 
-    private Integer version;
-
     private Integer batteryLevel;
 
     private Integer luxValue;
+
+    private Integer vocElapseSec;
+    private Integer voc;
+    private Integer nox;
+
+    private Integer co2ElapseSec;
+    private Integer co2;
 
     public int getAdvType()
     {
@@ -57,7 +64,7 @@ public class KBAdvPacketSensor extends KBAdvPacketBase{
 
     public Integer getVersion()
     {
-        return version;
+        return 0;
     }
 
     public Integer getBatteryLevel()
@@ -73,15 +80,35 @@ public class KBAdvPacketSensor extends KBAdvPacketBase{
         return luxValue;
     }
 
+    public Integer getVoc() {
+        return voc;
+    }
+
+    public Integer getNox() {
+        return nox;
+    }
+
+    public Integer getCo2() {
+        return co2;
+    }
+
+    public Integer getCo2ElapseSec() {
+        return co2ElapseSec;
+    }
+
+    public Integer getVocElapseSec() {
+        return vocElapseSec;
+    }
+
     public boolean parseAdvPacket(byte[] beaconData)
     {
         super.parseAdvPacket(beaconData);
 
         int nSrvIndex = 1; //skip adv type
 
-        version = (beaconData[nSrvIndex++] & 0xFF);
+        int sensorMaskHigh = ((beaconData[nSrvIndex++] & 0xFF) << 8);
+        int nSensorMask = sensorMaskHigh + (beaconData[nSrvIndex++] & 0xFF);
 
-        int nSensorMask = (beaconData[nSrvIndex++] & 0xFF);
         if ((nSensorMask & SENSOR_MASK_VOLTAGE) > 0)
         {
             if (nSrvIndex > (beaconData.length - 2))
@@ -174,6 +201,36 @@ public class KBAdvPacketSensor extends KBAdvPacketBase{
             luxValue += (beaconData[nSrvIndex++] & 0xFF);
         }else{
             luxValue = null;
+        }
+
+        //get voc value
+        if ((nSensorMask & SENSOR_MASK_VOC) > 0) {
+            if (nSrvIndex > (beaconData.length - 5)) {
+                return false;
+            }
+
+            vocElapseSec = (beaconData[nSrvIndex++] & 0xFF) * 10;
+            voc = ((beaconData[nSrvIndex++] & 0xFF) << 8);
+            voc += (beaconData[nSrvIndex++] & 0xFF);
+
+            nox = ((beaconData[nSrvIndex++] & 0xFF) << 8);
+            nox += (beaconData[nSrvIndex++] & 0xFF);
+        }else{
+            voc = null;
+            nox = null;
+        }
+
+        //get co2 value
+        if ((nSensorMask & SENSOR_MASK_CO2) > 0) {
+            if (nSrvIndex < (beaconData.length - 3)) {
+                return false;
+            }
+
+            co2ElapseSec = (beaconData[nSrvIndex++] & 0xFF) * 10;
+            co2 = ((beaconData[nSrvIndex++] & 0xFF) << 8);
+            co2 += (beaconData[nSrvIndex++] & 0xFF);
+        }else{
+            co2 = null;
         }
 
         return true;

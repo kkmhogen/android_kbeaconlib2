@@ -3,6 +3,9 @@ package com.kkmcn.kbeaconlib2.KBCfgPackage;
 import com.kkmcn.kbeaconlib2.KBException;
 import com.kkmcn.kbeaconlib2.KBAdvPackage.KBAdvType;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -206,6 +209,18 @@ public class KBCfgCommon extends KBCfgBase{
         return ((basicCapability & 0x40) > 0);
     }
 
+    //is support voc sensor
+    public boolean isSupportVOCSensor()
+    {
+        return ((basicCapability & 0x80) > 0);
+    }
+
+    //is support nox sensor
+    public boolean isSupportCO2Sensor()
+    {
+        return ((basicCapability & 0x1000000) > 0);
+    }
+
     //is support trigger
     public boolean isSupportTrigger(int nTriggerType)
     {
@@ -308,111 +323,96 @@ public class KBCfgCommon extends KBCfgBase{
         alwaysPowerOn = nAutoAdvAfterPowerOn;
     }
 
-    public int updateConfig(HashMap<String, Object> dicts) {
+    public int updateConfig(JSONObject dicts) throws JSONException {
         int nUpdateParaNum = super.updateConfig(dicts);
         String strTempValue;
 
-        strTempValue = (String) dicts.get(JSON_FIELD_BEACON_MODEL);
-        if (strTempValue != null) {
-            model = strTempValue;
+        if (dicts.has(JSON_FIELD_BEACON_MODEL)) {
+            model = (String) dicts.get(JSON_FIELD_BEACON_MODEL);
             nUpdateParaNum++;
         }
 
-        strTempValue = (String) dicts.get(JSON_FIELD_BEACON_VER);
-        if (strTempValue != null) {
-            version = strTempValue;
+        if (dicts.has(JSON_FIELD_BEACON_VER)) {
+            version = (String) dicts.get(JSON_FIELD_BEACON_VER);
             nUpdateParaNum++;
         }
 
-        strTempValue = (String) dicts.get(JSON_FIELD_BEACON_HVER);
-        if (strTempValue != null) {
-            hversion = strTempValue;
+        if (dicts.has(JSON_FIELD_BEACON_HVER)) {
+            hversion = (String) dicts.get(JSON_FIELD_BEACON_HVER);
             nUpdateParaNum++;
         }
 
-        Integer nTempValue = (Integer) dicts.get(JSON_FIELD_MAX_TX_PWR);
-        if (nTempValue != null) {
-            maxTxPower = nTempValue;
+        if (dicts.has(JSON_FIELD_MAX_TX_PWR)) {
+            maxTxPower = (Integer) dicts.get(JSON_FIELD_MAX_TX_PWR);
             nUpdateParaNum++;
         }
 
-        nTempValue = (Integer) dicts.get(JSON_FIELD_MAX_SLOT_NUM);
-        if (nTempValue != null) {
-            maxAdvSlot = nTempValue;
+        if (dicts.has(JSON_FIELD_MAX_SLOT_NUM)) {
+            maxAdvSlot = (Integer) dicts.get(JSON_FIELD_MAX_SLOT_NUM);
             nUpdateParaNum++;
         }
 
-        nTempValue = (Integer) dicts.get(JSON_FIELD_MAX_TRIGGER_NUM);
-        if (nTempValue != null) {
-            maxTriggerNum = nTempValue;
+        if (dicts.has(JSON_FIELD_MAX_TRIGGER_NUM)) {
+            maxTriggerNum = (Integer) dicts.get(JSON_FIELD_MAX_TRIGGER_NUM);
             nUpdateParaNum++;
         }
 
-        Float nTempFloat = parseFloat(dicts.get(JSON_FIELD_MAX_ADV_PERIOD));
-        if (nTempFloat != null) {
-            maxAdvPeriod = nTempFloat;
+        if (dicts.has(JSON_FIELD_MAX_ADV_PERIOD)) {
+            maxAdvPeriod = parseFloat(dicts.get(JSON_FIELD_MAX_ADV_PERIOD));
             nUpdateParaNum++;
         }
 
-        nTempValue = (Integer) dicts.get(JSON_FIELD_MIN_TX_PWR);
-        if (nTempValue != null) {
-            minTxPower = nTempValue;
+        if (dicts.has(JSON_FIELD_MIN_TX_PWR)) {
+            minTxPower = (Integer) dicts.get(JSON_FIELD_MIN_TX_PWR);
             nUpdateParaNum++;
         }
 
-        nTempValue = (Integer) dicts.get(JSON_FIELD_BASIC_CAPABILITY);
-        if (nTempValue != null) {
-            basicCapability = nTempValue;
+        if (dicts.has(JSON_FIELD_BASIC_CAPABILITY)) {
+            basicCapability = (Integer) dicts.get(JSON_FIELD_BASIC_CAPABILITY);
             nUpdateParaNum++;
         }
 
-        nTempValue = (Integer) dicts.get(JSON_FIELD_TRIG_CAPABILITY);
-        if (nTempValue != null) {
-            trigCapability = nTempValue;
+        if (dicts.has(JSON_FIELD_TRIG_CAPABILITY)) {
+            trigCapability = (Integer) dicts.get(JSON_FIELD_TRIG_CAPABILITY);
             nUpdateParaNum++;
         }
 
         //reference power
-        nTempValue = (Integer) dicts.get(JSON_FIELD_MEA_PWR);
-        if (nTempValue != null) {
-            refPower1Meters = nTempValue;
+        if (dicts.has(JSON_FIELD_MEA_PWR)) {
+            refPower1Meters = (Integer) dicts.get(JSON_FIELD_MEA_PWR);
             nUpdateParaNum++;
         }
 
         //password
-        strTempValue = (String) dicts.get(JSON_FIELD_PWD);
-        if (strTempValue != null) {
-            password = strTempValue;
+        if (dicts.has(JSON_FIELD_PWD)) {
+            password = (String) dicts.get(JSON_FIELD_PWD);
             nUpdateParaNum++;
         }
 
         //device name
-        strTempValue = (String) dicts.get(JSON_FIELD_DEV_NAME);
-        if (strTempValue != null) {
-            name = strTempValue;
+        if (dicts.has(JSON_FIELD_DEV_NAME)) {
+            name = (String) dicts.get(JSON_FIELD_DEV_NAME);
             nUpdateParaNum++;
         }
 
         //auto power on
-        nTempValue = (Integer) dicts.get(JSON_FIELD_AUTO_POWER_ON);
-        if (nTempValue != null) {
-            alwaysPowerOn = nTempValue > 0;
+        if (dicts.has(JSON_FIELD_AUTO_POWER_ON)) {
+            alwaysPowerOn = dicts.getInt(JSON_FIELD_AUTO_POWER_ON) > 0;
             nUpdateParaNum++;
         }
 
         //battery percent
-        batteryPercent = (Integer) dicts.get(JSON_FIELD_BATTERY_PERCENT);
-        if (nTempValue != null) {
-            batteryPercent = nTempValue;
+        if (dicts.has(JSON_FIELD_BATTERY_PERCENT)) {
+            batteryPercent =  (Integer) dicts.get(JSON_FIELD_BATTERY_PERCENT);
             nUpdateParaNum++;
         }
 
         return nUpdateParaNum;
     }
 
-    public HashMap<String, Object> toDictionary()
+    public JSONObject toJSONObject() throws JSONException
     {
-        HashMap<String, Object> configDicts = super.toDictionary();
+        JSONObject configDicts = super.toJSONObject();
 
         //reference power
         if (refPower1Meters != null) {
@@ -435,5 +435,13 @@ public class KBCfgCommon extends KBCfgBase{
         }
 
         return configDicts;
+    }
+
+    public Integer getBatteryPercent() {
+        return batteryPercent;
+    }
+
+    public String getPassword() {
+        return password;
     }
 }

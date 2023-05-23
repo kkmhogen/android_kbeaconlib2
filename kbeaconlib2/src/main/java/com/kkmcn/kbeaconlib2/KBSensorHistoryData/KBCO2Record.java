@@ -4,24 +4,26 @@ import com.kkmcn.kbeaconlib2.ByteConvert;
 import com.kkmcn.kbeaconlib2.KBCfgPackage.KBSensorType;
 import com.kkmcn.kbeaconlib2.KBUtility;
 
-public class KBHumidityRecord extends KBRecordBase {
+public class KBCO2Record extends KBRecordBase {
     public long utcTime;
+
+    public short CO2;
 
     public float temperature;
 
     public float humidity;
 
-    public static int HT_RECORD_LEN = 8;
+    public static int CO2_RECORD_LEN = 10;
 
     @Override
     public int getRecordLen() {
-        return HT_RECORD_LEN;
+        return CO2_RECORD_LEN;
     }
 
     @Override
     public int getSenorType()
     {
-        return KBSensorType.HTHumidity;
+        return KBSensorType.CO2;
     }
 
     @Override
@@ -36,12 +38,14 @@ public class KBHumidityRecord extends KBRecordBase {
         }
         nRecordPtr += 4;
 
+        CO2 = (short)((sensorDataRsp[nRecordPtr++] & 0xFF) << 8);
+        CO2 += (short)(sensorDataRsp[nRecordPtr++] & 0xFF);
+
         temperature = KBUtility.signedBytes2Float(sensorDataRsp[nRecordPtr], sensorDataRsp[nRecordPtr+1]);
         nRecordPtr += 2;
 
         humidity = KBUtility.signedBytes2Float(sensorDataRsp[nRecordPtr], sensorDataRsp[nRecordPtr+1]);
         nRecordPtr += 2;
-
 
         return true;
     }

@@ -2,26 +2,25 @@ package com.kkmcn.kbeaconlib2.KBSensorHistoryData;
 
 import com.kkmcn.kbeaconlib2.ByteConvert;
 import com.kkmcn.kbeaconlib2.KBCfgPackage.KBSensorType;
-import com.kkmcn.kbeaconlib2.KBUtility;
 
-public class KBHumidityRecord extends KBRecordBase {
+public class KBVOCRecord extends KBRecordBase {
     public long utcTime;
 
-    public float temperature;
+    public short vocIndex;
+    
+    public short noxIndex;
 
-    public float humidity;
-
-    public static int HT_RECORD_LEN = 8;
+    public static int VOC_RECORD_LEN = 8;
 
     @Override
     public int getRecordLen() {
-        return HT_RECORD_LEN;
+        return VOC_RECORD_LEN;
     }
 
     @Override
     public int getSenorType()
     {
-        return KBSensorType.HTHumidity;
+        return KBSensorType.VOC;
     }
 
     @Override
@@ -36,12 +35,11 @@ public class KBHumidityRecord extends KBRecordBase {
         }
         nRecordPtr += 4;
 
-        temperature = KBUtility.signedBytes2Float(sensorDataRsp[nRecordPtr], sensorDataRsp[nRecordPtr+1]);
-        nRecordPtr += 2;
+        vocIndex = (short)((sensorDataRsp[nRecordPtr++] & 0xFF) << 8);
+        vocIndex += (short)(sensorDataRsp[nRecordPtr++] & 0xFF);
 
-        humidity = KBUtility.signedBytes2Float(sensorDataRsp[nRecordPtr], sensorDataRsp[nRecordPtr+1]);
-        nRecordPtr += 2;
-
+        noxIndex = (short)((sensorDataRsp[nRecordPtr++] & 0xFF) << 8);
+        noxIndex += (short)(sensorDataRsp[nRecordPtr++] & 0xFF);
 
         return true;
     }

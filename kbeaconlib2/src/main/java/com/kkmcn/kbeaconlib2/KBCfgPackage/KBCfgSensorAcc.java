@@ -1,5 +1,8 @@
 package com.kkmcn.kbeaconlib2.KBCfgPackage;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.HashMap;
 
 public class KBCfgSensorAcc extends KBCfgSensorBase{
@@ -25,26 +28,22 @@ public class KBCfgSensorAcc extends KBCfgSensorBase{
         return accModel;
     }
 
-    public int updateConfig(HashMap<String,Object> dicts)
+    public int updateConfig(JSONObject dicts) throws JSONException
     {
         int nUpdateConfigNum = super.updateConfig(dicts);
-        Object obj;
 
-        obj = dicts.get(JSON_SENSOR_TYPE_ACC_MODEL);
-        if (obj != null)
+        if (dicts.has(JSON_SENSOR_TYPE_ACC_MODEL))
         {
-            accModel = (Integer)obj ;
+            accModel = (Integer)dicts.get(JSON_SENSOR_TYPE_ACC_MODEL) ;
             nUpdateConfigNum++;
         }
 
         return nUpdateConfigNum;
     }
 
-    public HashMap<String, Object> toDictionary()
+    public JSONObject toJSONObject() throws JSONException
     {
-        HashMap<String, Object> configDicts = super.toDictionary();
-
-        return configDicts;
+        return super.toJSONObject();
     }
 
 }

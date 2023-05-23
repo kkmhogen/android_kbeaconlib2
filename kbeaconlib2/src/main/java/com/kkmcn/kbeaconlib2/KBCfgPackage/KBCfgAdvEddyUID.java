@@ -4,6 +4,9 @@ import com.kkmcn.kbeaconlib2.KBAdvPackage.KBAdvType;
 import com.kkmcn.kbeaconlib2.KBException;
 import com.kkmcn.kbeaconlib2.KBUtility;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.HashMap;
 
 public class KBCfgAdvEddyUID extends KBCfgAdvBase
@@ -59,28 +62,28 @@ public class KBCfgAdvEddyUID extends KBCfgAdvBase
     }
 
 
-    public int updateConfig(HashMap<String, Object>dicts)
+    public int updateConfig(JSONObject dicts) throws JSONException
     {
         int nUpdatePara = super.updateConfig(dicts);
 
-        if (dicts.get(JSON_FIELD_EDDY_UID_NID) != null)
+        if (dicts.has(JSON_FIELD_EDDY_UID_NID))
         {
-            nid = (String)dicts.get(JSON_FIELD_EDDY_UID_NID);
+            nid = dicts.getString(JSON_FIELD_EDDY_UID_NID);
             nUpdatePara++;
         }
 
-        if (dicts.get(JSON_FIELD_EDDY_UID_SID) != null)
+        if (dicts.has(JSON_FIELD_EDDY_UID_SID))
         {
-            sid = (String)dicts.get(JSON_FIELD_EDDY_UID_SID);
+            sid = dicts.getString(JSON_FIELD_EDDY_UID_SID);
             nUpdatePara++;
         }
 
         return nUpdatePara;
     }
 
-    public HashMap<String, Object> toDictionary()
+    public JSONObject toJSONObject() throws JSONException
     {
-        HashMap<String, Object> cfgDicts = super.toDictionary();
+        JSONObject cfgDicts = super.toJSONObject();
 
         if (nid != null)
         {

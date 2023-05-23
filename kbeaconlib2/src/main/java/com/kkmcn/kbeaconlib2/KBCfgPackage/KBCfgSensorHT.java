@@ -1,10 +1,11 @@
 package com.kkmcn.kbeaconlib2.KBCfgPackage;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.HashMap;
 
 public class KBCfgSensorHT extends KBCfgSensorBase{
-    public static final String JSON_SENSOR_TYPE_HT_LOG_ENABLE = "log";
-    public static final String JSON_SENSOR_TYPE_HT_MEASURE_INTERVAL = "msItvl";
     public static final String JSON_SENSOR_TYPE_HT_TEMP_CHANGE_THD = "tsThd";
     public static final String JSON_SENSOR_TYPE_HT_HUMIDITY_CHANGE_THD = "hsThd";
 
@@ -91,54 +92,50 @@ public class KBCfgSensorHT extends KBCfgSensorBase{
     }
 
 
-    public int updateConfig(HashMap<String,Object> dicts)
+    public int updateConfig(JSONObject dicts) throws JSONException
     {
         int nUpdateConfigNum = super.updateConfig(dicts);
         Object obj;
 
-        obj = dicts.get(JSON_SENSOR_TYPE_HT_LOG_ENABLE);
-        if (obj != null)
+        if (dicts.has(JSON_SENSOR_TYPE_LOG_ENABLE))
         {
-            logEnable = ((Integer) obj > 0);
+            logEnable = (dicts.getInt(JSON_SENSOR_TYPE_LOG_ENABLE) > 0);
             nUpdateConfigNum++;
         }
 
-        obj = dicts.get(JSON_SENSOR_TYPE_HT_MEASURE_INTERVAL);
-        if (obj != null)
+        if (dicts.has(JSON_SENSOR_TYPE_MEASURE_INTERVAL))
         {
-            sensorHtMeasureInterval = (Integer) obj;
+            sensorHtMeasureInterval = (Integer) dicts.get(JSON_SENSOR_TYPE_MEASURE_INTERVAL);
             nUpdateConfigNum++;
         }
 
-        obj = dicts.get(JSON_SENSOR_TYPE_HT_TEMP_CHANGE_THD);
-        if (obj != null)
+        if (dicts.has(JSON_SENSOR_TYPE_HT_TEMP_CHANGE_THD))
         {
-            temperatureChangeThreshold = (Integer) obj;
+            temperatureChangeThreshold = (Integer) dicts.get(JSON_SENSOR_TYPE_HT_TEMP_CHANGE_THD);
             nUpdateConfigNum++;
         }
 
-        obj = dicts.get(JSON_SENSOR_TYPE_HT_HUMIDITY_CHANGE_THD);
-        if (obj != null)
+        if (dicts.has(JSON_SENSOR_TYPE_HT_HUMIDITY_CHANGE_THD))
         {
-            humidityChangeThreshold = (Integer) obj;
+            humidityChangeThreshold = (Integer) dicts.get(JSON_SENSOR_TYPE_HT_HUMIDITY_CHANGE_THD);
             nUpdateConfigNum++;
         }
 
         return nUpdateConfigNum;
     }
 
-    public HashMap<String, Object> toDictionary()
+    public JSONObject toJSONObject() throws JSONException
     {
-        HashMap<String, Object> configDicts = super.toDictionary();
+        JSONObject configDicts = super.toJSONObject();
 
         if (logEnable != null)
         {
-            configDicts.put(JSON_SENSOR_TYPE_HT_LOG_ENABLE, logEnable ? 1: 0);
+            configDicts.put(JSON_SENSOR_TYPE_LOG_ENABLE, logEnable ? 1: 0);
         }
 
         if (sensorHtMeasureInterval != null)
         {
-            configDicts.put(JSON_SENSOR_TYPE_HT_MEASURE_INTERVAL, sensorHtMeasureInterval);
+            configDicts.put(JSON_SENSOR_TYPE_MEASURE_INTERVAL, sensorHtMeasureInterval);
         }
 
         if (temperatureChangeThreshold != null)

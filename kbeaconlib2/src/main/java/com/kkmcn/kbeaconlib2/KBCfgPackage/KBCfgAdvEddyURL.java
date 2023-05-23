@@ -3,6 +3,9 @@ package com.kkmcn.kbeaconlib2.KBCfgPackage;
 import com.kkmcn.kbeaconlib2.KBAdvPackage.KBAdvType;
 import com.kkmcn.kbeaconlib2.KBException;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.HashMap;
 
 public class KBCfgAdvEddyURL extends KBCfgAdvBase{
@@ -38,11 +41,11 @@ public class KBCfgAdvEddyURL extends KBCfgAdvBase{
         }
     }
 
-    public int updateConfig(HashMap<String, Object> dicts)
+    public int updateConfig(JSONObject dicts) throws JSONException
     {
         int nUpdateParaNum = super.updateConfig(dicts);
 
-        if (dicts.get(JSON_FIELD_EDDY_URL_ADDR) != null)
+        if (dicts.has(JSON_FIELD_EDDY_URL_ADDR))
         {
             url = (String)dicts.get(JSON_FIELD_EDDY_URL_ADDR);
             nUpdateParaNum++;
@@ -51,9 +54,9 @@ public class KBCfgAdvEddyURL extends KBCfgAdvBase{
         return nUpdateParaNum;
     }
 
-    public HashMap<String, Object> toDictionary()
+    public JSONObject toJSONObject() throws JSONException
     {
-        HashMap<String, Object> cfgDicts = super.toDictionary();
+        JSONObject cfgDicts = super.toJSONObject();
         if (url != null)
         {
             cfgDicts.put(JSON_FIELD_EDDY_URL_ADDR, url);

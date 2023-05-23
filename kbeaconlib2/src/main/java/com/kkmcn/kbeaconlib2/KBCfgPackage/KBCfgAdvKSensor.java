@@ -2,6 +2,9 @@ package com.kkmcn.kbeaconlib2.KBCfgPackage;
 
 import com.kkmcn.kbeaconlib2.KBAdvPackage.KBAdvType;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.HashMap;
 
 public class KBCfgAdvKSensor extends KBCfgAdvBase{
@@ -9,11 +12,15 @@ public class KBCfgAdvKSensor extends KBCfgAdvBase{
     public static final String JSON_FIELD_SENSOR_AXIS= "axis";
     public static final String JSON_FIELD_SENSOR_LUX = "lux";
     public static final String JSON_FIELD_SENSOR_PIR= "pir";
+    public static final String JSON_FIELD_SENSOR_VOC= "voc";
+    public static final String JSON_FIELD_SENSOR_CO2= "co2";
 
     private Boolean htSensorInclude;
     private Boolean axisSensorInclude;
     private Boolean lightSensorInclude;
     private Boolean pirSensorInclude;
+    private Boolean vocSensorInclude;
+    private Boolean co2SensorInclude;
 
     public KBCfgAdvKSensor()
     {
@@ -53,45 +60,68 @@ public class KBCfgAdvKSensor extends KBCfgAdvBase{
         return pirSensorInclude;
     }
 
-    public int updateConfig(HashMap<String,Object>dicts)
+    public void setVocSensorInclude(Boolean vocSensorInclude) {
+        this.vocSensorInclude = vocSensorInclude;
+    }
+
+    public Boolean isVocSensorInclude(){
+        return vocSensorInclude;
+    }
+
+    public void setCo2SensorInclude(Boolean co2SensorInclude) {
+        this.co2SensorInclude = co2SensorInclude;
+    }
+
+    public Boolean isCo2SensorInclude(){
+        return co2SensorInclude;
+    }
+
+    public int updateConfig(JSONObject dicts) throws JSONException
     {
         int nUpdateConfigNum = super.updateConfig(dicts);
-        Object obj;
 
-        obj = dicts.get(JSON_FIELD_SENSOR_HUMIDITY);
-        if (obj != null)
+        if (dicts.has(JSON_FIELD_SENSOR_HUMIDITY))
         {
-            htSensorInclude = ((Integer) obj > 0);
+            htSensorInclude = (dicts.getInt(JSON_FIELD_SENSOR_HUMIDITY) > 0);
             nUpdateConfigNum++;
         }
 
-        obj = dicts.get(JSON_FIELD_SENSOR_AXIS);
-        if (obj != null)
+        if (dicts.has(JSON_FIELD_SENSOR_AXIS))
         {
-            axisSensorInclude = ((Integer) obj > 0);
+            axisSensorInclude = (dicts.getInt(JSON_FIELD_SENSOR_AXIS) > 0);
             nUpdateConfigNum++;
         }
 
-        obj = dicts.get(JSON_FIELD_SENSOR_LUX);
-        if (obj != null)
+        if (dicts.has(JSON_FIELD_SENSOR_LUX))
         {
-            lightSensorInclude = ((Integer) obj > 0);
+            lightSensorInclude = (dicts.getInt(JSON_FIELD_SENSOR_LUX) > 0);
             nUpdateConfigNum++;
         }
 
-        obj = dicts.get(JSON_FIELD_SENSOR_PIR);
-        if (obj != null)
+        if (dicts.has(JSON_FIELD_SENSOR_PIR))
         {
-            pirSensorInclude = ((Integer) obj > 0);
+            pirSensorInclude = (dicts.getInt(JSON_FIELD_SENSOR_PIR) > 0);
+            nUpdateConfigNum++;
+        }
+
+        if (dicts.has(JSON_FIELD_SENSOR_VOC))
+        {
+            vocSensorInclude = (dicts.getInt(JSON_FIELD_SENSOR_VOC) > 0);
+            nUpdateConfigNum++;
+        }
+
+        if (dicts.has(JSON_FIELD_SENSOR_CO2))
+        {
+            co2SensorInclude = (dicts.getInt(JSON_FIELD_SENSOR_CO2) > 0);
             nUpdateConfigNum++;
         }
 
         return nUpdateConfigNum;
     }
 
-    public HashMap<String, Object> toDictionary()
+    public JSONObject toJSONObject() throws JSONException
     {
-        HashMap<String, Object> configDicts = super.toDictionary();
+        JSONObject configDicts = super.toJSONObject();
 
         if (htSensorInclude != null)
         {
@@ -111,6 +141,16 @@ public class KBCfgAdvKSensor extends KBCfgAdvBase{
         if (pirSensorInclude != null)
         {
             configDicts.put(JSON_FIELD_SENSOR_PIR, pirSensorInclude ? 1: 0);
+        }
+
+        if (vocSensorInclude != null)
+        {
+            configDicts.put(JSON_FIELD_SENSOR_VOC, vocSensorInclude ? 1: 0);
+        }
+
+        if (co2SensorInclude != null)
+        {
+            configDicts.put(JSON_FIELD_SENSOR_CO2, co2SensorInclude ? 1: 0);
         }
 
         return configDicts;

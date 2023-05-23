@@ -33,6 +33,10 @@ import com.kkmcn.kbeaconlib2.KBCfgPackage.KBCfgSensorBase;
 import com.kkmcn.kbeaconlib2.KBCfgPackage.KBCfgTrigger;
 import com.kkmcn.kbeaconlib2.KBCfgPackage.KBCfgType;
 import com.kkmcn.kbeaconlib2.KBCfgPackage.KBTriggerType;
+import com.kkmcn.kbeaconlib2.KBSensorHistoryData.KBSensorDataHandler;
+import com.kkmcn.kbeaconlib2.KBSensorHistoryData.KBSensorMsgType;
+import com.kkmcn.kbeaconlib2.KBSensorHistoryData.KBSensorReadInfoRsp;
+import com.kkmcn.kbeaconlib2.KBSensorHistoryData.KBSensorReadRecordRsp;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -55,6 +59,8 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
     private String name;
     private KBConnState state; //connection state
 
+    public final static int MIN_JSON_MSG_LEN = 7;
+
     //adv and config manager
     private final static int MSG_CONNECT_TIMEOUT = 201;
     private final static int MSG_ACTION_TIME_OUT = 202;
@@ -69,19 +75,12 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
     private final static int MSG_BEACON_INDICATION_RECEIVED = 211;
     private final static int MSG_NTF_SUBSCRIBE_INDICATION_CMP = 212;
 
+    private final static int  MSG_START_EXECUTE_NEXT_MSG = 213;
+
     //timer
     private final static int MAX_READ_CFG_TIMEOUT = 15*1000;
 
     private final static int MAX_WRITE_CFG_TIMEOUT = 15*1000;
-
-    //action status
-    private final static int ACTION_IDLE = 0x0;
-    private final static int ACTION_WRITE_CFG = 0x1;
-    private final static int ACTION_WRITE_CMD = 0x2;
-    private final static int ACTION_INIT_READ_CFG = 0x3;
-    private final static int ACTION_USR_READ_CFG = 0x4;
-    private final static int ACTION_READ_SENSOR = 0x5;
-    private final static int ACTION_ENABLE_NTF = 0x6;
 
     private final static int DATA_TYPE_AUTH = 0x1;
     private final static int DATA_TYPE_JSON = 0x2;
@@ -115,34 +114,67 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
     private final static int MAX_MTU_SIZE = 251;
     private final static int MAX_BUFFER_DATA_SIZE = 1024;
 
-    private ActionCallback mWriteCfgCallback;
-    private ActionCallback mWriteCmdCallback;
-    private ActionCallback mEnableSubscribeNotifyCallback;
-    private ReadConfigCallback mReadCfgCallback;
-    private ReadSensorCallback mReadSensorCallback;
-    private byte[] mByDownloadDatas;
-    private byte mByDownDataType;
-
-    private byte[] mReceiveData;
-    private int mReceiveDataLen;
-    private ArrayList<KBCfgBase> mToBeCfgData;
     private KBAuthHandler mAuthHandler;
     private KBConnPara mConnPara;
-    private int mNextInitReadCfgSubtype;
 
     private int mCloseReason;
     private KBAdvPacketHandler mAdvPacketMgr;
+    private KBSensorDataHandler mSensorRecordsMgr;
     private KBCfgHandler mCfgMgr;
     private String mPassword;
     private BluetoothDevice mBleDevice;
     private Context mContext;
     private final BluetoothGattCallback mGattCallback;
     private BluetoothGatt mGattConnection;
-    private int mActionStatus;
+
+    //indication bluetooth device is busy
+    private boolean mActionDoing;
 
     private HashMap<Integer, NotifyDataDelegate> notifyData2ClassMap;
     private NotifyDataDelegate mToAddedSubscribeInstance = null;
     private Integer mToAddedTriggerType = 0;
+
+    private enum ActionType
+    {
+        ACTION_IDLE,
+        ACTION_WRITE_CFG,
+        ACTION_WRITE_CMD,
+        ACTION_INIT_READ_CFG,
+        ACTION_USR_READ_CFG,
+        ACTION_SENSOR_READ_INFO,
+        ACTION_SENSOR_READ_RECORD,
+        ACTION_SENSOR_COMMAND,
+        ACTION_ENABLE_NTF,
+        ACTION_DISABLE_NTF
+    };
+
+    private class ActionCommand
+    {
+        ActionType actionType;
+        Object actionCallback;
+        byte[] downDataBuff;
+        int downDataType;
+        int actionTimeout;
+
+        int receiveDataLen;
+        private byte[] receiveData;
+        ArrayList<KBCfgBase> toBeCfgData;
+
+        public ActionCommand(ActionType type, int timeout)
+        {
+            actionType = type;
+            actionTimeout = timeout;
+
+            actionCallback = null;
+            downDataBuff = null;
+            toBeCfgData = null;
+            receiveDataLen = 0;
+            receiveData = new byte[MAX_BUFFER_DATA_SIZE];
+        }
+    };
+
+    //command msg buffer list
+    ArrayList<ActionCommand> mActionList = new ArrayList<>(5);
 
     public interface ConnStateDelegate {
         void onConnStateChange(KBeacon beacon, KBConnState state, int nReason);
@@ -160,8 +192,16 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         void onReadComplete(boolean bConfigSuccess, JSONObject readPara, KBException error);
     }
 
-    public interface ReadSensorCallback {
-        void onReadComplete(boolean bReadResult, byte[] readPara, KBException error);
+    public interface ReadSensorInfoCallback {
+        void onReadComplete(boolean bReadResult, KBSensorReadInfoRsp readPara, KBException error);
+    }
+
+    public interface ReadSensorRspCallback {
+        void onReadComplete(boolean bReadResult, KBSensorReadRecordRsp readPara, KBException error);
+    }
+
+    public interface SensorCommandCallback {
+        void onCommandComplete(boolean bReadResult, Object readPara, KBException error);
     }
 
     public KBeacon(String strMacAddress, Context ctx)
@@ -169,12 +209,11 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         mac = strMacAddress;
         state = KBConnState.Disconnected;
         mAdvPacketMgr = new KBAdvPacketHandler();
+        mSensorRecordsMgr = new KBSensorDataHandler();
         mCfgMgr = new KBCfgHandler();
         mContext = ctx;
         mGattCallback = new KBeaconGattCallback();
         mAuthHandler = new KBAuthHandler(this);
-        mReceiveData = new byte[MAX_BUFFER_DATA_SIZE];
-        mReceiveDataLen = 0;
         notifyData2ClassMap = new HashMap<>(10);
         mConnPara = new KBConnPara();
     }
@@ -199,6 +238,11 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
     public String getMac()
     {
         return mac;
+    }
+
+    public KBSensorDataHandler getSensorRecordsMgr()
+    {
+        return mSensorRecordsMgr;
     }
 
     //get rssi
@@ -343,7 +387,9 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
             state = KBConnState.Connecting;
 
             //cancel action timer
-            this.cancelActionTimer();
+            mActionDoing = false;
+            mMsgHandler.removeMessages(MSG_ACTION_TIME_OUT);
+            mActionList.clear();
             clearBufferConfig();
 
             //cancel connect timer
@@ -363,7 +409,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         else
         {
             //notify connecting
-            Log.e(LOG_TAG, "input paramaters false");
+            Log.e(LOG_TAG, "input parameters false");
             return false;
         }
     }
@@ -457,7 +503,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
     public KBCfgAdvEddyTLM getEddyTLMAdvCfg()
     {
         ArrayList<KBCfgAdvBase> sensorList = mCfgMgr.getDeviceSlotsCfgByType(KBAdvType.EddyTLM);
-        if (sensorList.size() == 0){
+        if (sensorList == null){
             return null;
         }else{
             return (KBCfgAdvEddyTLM)sensorList.get(0);
@@ -468,7 +514,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
     public KBCfgAdvSystem getSystemAdvCfg()
     {
         ArrayList<KBCfgAdvBase> advList = mCfgMgr.getDeviceSlotsCfgByType(KBAdvType.System);
-        if (advList.size() == 0){
+        if (advList == null){
             return null;
         }else{
             return (KBCfgAdvSystem)advList.get(0);
@@ -479,7 +525,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
     public KBCfgAdvKSensor getKSensorAdvCfg()
     {
         ArrayList<KBCfgAdvBase> sensorList = mCfgMgr.getDeviceSlotsCfgByType(KBAdvType.Sensor);
-        if (sensorList.size() == 0){
+        if (sensorList == null){
             return null;
         }else{
             return (KBCfgAdvKSensor)sensorList.get(0);
@@ -522,13 +568,6 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
 
             if (this.notifyData2ClassMap.size() == 0)
             {
-                if (mActionStatus != ACTION_IDLE)
-                {
-                    if (callback != null) {
-                        callback.onActionComplete(false, new KBException(KBErrorCode.CfgBusy, "Device was busy"));
-                    }
-                    return;
-                }
                 if (state != KBConnState.Connected)
                 {
                     if (callback != null) {
@@ -543,15 +582,14 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
                     nTriggerEventType = KBTriggerType.TriggerNull;
                 }
                 mToAddedTriggerType = nTriggerEventType;
-                mEnableSubscribeNotifyCallback = callback;
-                if (startEnableIndication(KBUtility.KB_CFG_SERVICE_UUID, KBUtility.KB_IND_CHAR_UUID, true))
-                {
-                    startNewAction(ACTION_ENABLE_NTF, 3000);
-                }else{
-                    if (callback != null) {
-                        callback.onActionComplete(false, new KBException(KBErrorCode.CfgFailed, "Enable notification failed"));
-                    }
-                }
+
+                //add action
+                ActionCommand action = new ActionCommand(ActionType.ACTION_ENABLE_NTF, 3000);
+                action.actionCallback = callback;
+                mActionList.add(action);
+
+                //write data
+                executeNextAction();
             } else {
                 this.notifyData2ClassMap.put(nTriggerEventType, notifyDataCallback);
                 if (callback != null) {
@@ -595,13 +633,6 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
 
             if (this.notifyData2ClassMap.size() == 1)
             {
-                if (mActionStatus != ACTION_IDLE)
-                {
-                    if (callback != null) {
-                        callback.onActionComplete(false, new KBException(KBErrorCode.CfgBusy, "Device was busy"));
-                    }
-                    return;
-                }
                 if (state != KBConnState.Connected)
                 {
                     if (callback != null) {
@@ -613,11 +644,14 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
                 //save callback
                 mToAddedSubscribeInstance = null;
                 mToAddedTriggerType = 0;
-                mEnableSubscribeNotifyCallback = callback;
-                if (startEnableIndication(KBUtility.KB_CFG_SERVICE_UUID, KBUtility.KB_IND_CHAR_UUID, false))
-                {
-                    startNewAction(ACTION_ENABLE_NTF, 3000);
-                }
+
+                //add action
+                ActionCommand action = new ActionCommand(ActionType.ACTION_DISABLE_NTF, 3000);
+                action.actionCallback = callback;
+                mActionList.add(action);
+
+                //execute next action
+                executeNextAction();
             } else {
                 this.notifyData2ClassMap.remove(nTriggerType);
                 if (callback != null) {
@@ -653,15 +687,8 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
     }
 
     //send command parameters to device
-    public void sendCommand(HashMap<String,Object>cmdPara, ActionCallback callback)
+    public void sendCommand(JSONObject cmdPara, ActionCallback callback)
     {
-        if (mActionStatus != ACTION_IDLE)
-        {
-            if (callback != null) {
-                callback.onActionComplete(false, new KBException(KBErrorCode.CfgBusy, "Device was busy"));
-            }
-            return;
-        }
         if (state != KBConnState.Connected)
         {
             if (callback != null) {
@@ -672,22 +699,23 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
 
         //save callback
         String strJsonCfgData = KBCfgHandler.cmdParaToJsonString(cmdPara);
-        if (strJsonCfgData == null || strJsonCfgData.length() == 0) {
+        if (strJsonCfgData.length() == 0) {
             if (callback != null) {
                 callback.onActionComplete(false, new KBException(KBErrorCode.CfgInputInvalid, "Input parameters invalid"));
             }
             return;
         }
-        mToBeCfgData = null;
-        mWriteCmdCallback = callback;
 
-        mByDownloadDatas = strJsonCfgData.getBytes(StandardCharsets.UTF_8);
-        mByDownDataType = CENT_PERP_TX_JSON_DATA;
-        startNewAction(ACTION_WRITE_CMD, MAX_READ_CFG_TIMEOUT);
-        sendNextCfgData(0);
+        //create action object
+        ActionCommand command = new ActionCommand(ActionType.ACTION_WRITE_CMD, MAX_WRITE_CFG_TIMEOUT);
+        command.downDataBuff = strJsonCfgData.getBytes(StandardCharsets.UTF_8);
+        command.downDataType = CENT_PERP_TX_JSON_DATA;
+        command.actionCallback = callback;
+        mActionList.add(command);
+
+        //write data
+        executeNextAction();
     }
-
-
 
     //create cfg object from JSON
     public ArrayList<KBCfgBase> createCfgObjectsFromJsonObject(JSONObject jsonObj)
@@ -696,13 +724,8 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
     }
 
     //read config by raw json message
-    public void readConfig(HashMap<String,Object>readPara, final ReadConfigCallback callback)
+    public void readConfig(JSONObject readMsg, final ReadConfigCallback callback)
     {
-        if (mActionStatus != ACTION_IDLE)
-        {
-            callback.onReadComplete(false, null, new KBException(KBErrorCode.CfgBusy, "Device was busy"));
-            return;
-        }
         if (state != KBConnState.Connected)
         {
             if (callback != null) {
@@ -711,60 +734,94 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
             return;
         }
 
-        if (configReadBeaconParamaters(readPara, ACTION_USR_READ_CFG))
-        {
-            mReadCfgCallback = callback;
-        }
-        else
+        String strJsonCfgData = KBCfgHandler.cmdParaToJsonString(readMsg);
+        if (strJsonCfgData.length() < MIN_JSON_MSG_LEN)
         {
             if (callback != null) {
                 callback.onReadComplete(false, null, new KBException(KBErrorCode.CfgInputInvalid, "Input parameters invalid"));
             }
         }
+
+        startReadBeaconParameters(ActionType.ACTION_USR_READ_CFG, strJsonCfgData, callback);
     }
 
     //read slot common parameters from device
     //this function will force app to read parameters again from device
     public void readCommonConfig(final ReadConfigCallback callback)
     {
-        HashMap<String, Object> readCfgReq = new HashMap<>(10);
-        readCfgReq.put(KBCfgBase.JSON_MSG_TYPE_KEY, KBCfgBase.JSON_MSG_TYPE_GET_PARA);
-        readCfgReq.put(KBCfgBase.JSON_FIELD_SUBTYPE, KBCfgType.CommonPara);
-        readConfig(readCfgReq, callback);
+        JSONObject readCommMsg = new JSONObject();
+        try
+        {
+            readCommMsg.put(KBCfgBase.JSON_MSG_TYPE_KEY, KBCfgBase.JSON_MSG_TYPE_GET_PARA);
+            readCommMsg.put(KBCfgBase.JSON_FIELD_SUBTYPE, KBCfgType.CommonPara);
+            readConfig(readCommMsg, callback);
+        } catch (JSONException except)
+        {
+            except.printStackTrace();
+            callback.onReadComplete(false, null,
+                    new KBException(KBErrorCode.CfgJSONError,
+                            "create JSON object failed"));
+        }
     }
 
     //read slot adv parameters from device
     //this function will force app to read parameters again from device
     public void readSlotConfig(int nSlotIndex, final ReadConfigCallback callback)
     {
-        HashMap<String, Object> readCfgReq = new HashMap<>(10);
-        readCfgReq.put(KBCfgBase.JSON_MSG_TYPE_KEY, KBCfgBase.JSON_MSG_TYPE_GET_PARA);
-        readCfgReq.put(KBCfgBase.JSON_FIELD_SUBTYPE, KBCfgType.AdvPara);
-        readCfgReq.put(KBCfgAdvBase.JSON_FIELD_SLOT, nSlotIndex);
-        readConfig(readCfgReq, callback);
+        JSONObject readCfgReq = new JSONObject();
+        try
+        {
+            readCfgReq.put(KBCfgBase.JSON_MSG_TYPE_KEY, KBCfgBase.JSON_MSG_TYPE_GET_PARA);
+            readCfgReq.put(KBCfgBase.JSON_FIELD_SUBTYPE, KBCfgType.AdvPara);
+            readCfgReq.put(KBCfgAdvBase.JSON_FIELD_SLOT, nSlotIndex);
+            readConfig(readCfgReq, callback);
+        } catch (JSONException except)
+        {
+            except.printStackTrace();
+            callback.onReadComplete(false, null,
+                    new KBException(KBErrorCode.CfgJSONError,
+                            "create JSON object failed"));
+        }
     }
 
     //read trigger parameters from device
     //this function will force app to read trigger parameters again from device
     public void readTriggerConfig(int nTriggerType, final ReadConfigCallback callback)
     {
-        HashMap<String,Object> readCfgReq = new HashMap<>(5);
-        readCfgReq.put(KBCfgBase.JSON_MSG_TYPE_KEY, KBCfgBase.JSON_MSG_TYPE_GET_PARA);
-        readCfgReq.put(KBCfgBase.JSON_FIELD_SUBTYPE, KBCfgType.TriggerPara);
-        readCfgReq.put(KBCfgTrigger.JSON_FIELD_TRIGGER_TYPE, nTriggerType);
-        readConfig(readCfgReq, callback);
+        JSONObject readCfgReq = new JSONObject();
+        try
+        {
+            readCfgReq.put(KBCfgBase.JSON_MSG_TYPE_KEY, KBCfgBase.JSON_MSG_TYPE_GET_PARA);
+            readCfgReq.put(KBCfgBase.JSON_FIELD_SUBTYPE, KBCfgType.TriggerPara);
+            readCfgReq.put(KBCfgTrigger.JSON_FIELD_TRIGGER_TYPE, nTriggerType);
+            readConfig(readCfgReq, callback);
+        } catch (JSONException except)
+        {
+            except.printStackTrace();
+            callback.onReadComplete(false, null,
+                    new KBException(KBErrorCode.CfgJSONError,
+                    "create JSON object failed"));
+        }
     }
 
     //read sensor parameters from device
     //this function will force app to read sensor parameters again from device
     public void readSensorConfig(int nSensorType, final ReadConfigCallback callback)
     {
-        HashMap<String,Object> readCfgReq = new HashMap<>(5);
-        readCfgReq.put(KBCfgBase.JSON_MSG_TYPE_KEY, KBCfgBase.JSON_MSG_TYPE_GET_PARA);
-        readCfgReq.put(KBCfgBase.JSON_FIELD_SUBTYPE, KBCfgType.SensorPara);
-        readCfgReq.put(KBCfgSensorBase.JSON_SENSOR_TYPE, nSensorType);
-
-        readConfig(readCfgReq, callback);
+        JSONObject readCfgReq = new JSONObject();
+        try
+        {
+            readCfgReq.put(KBCfgBase.JSON_MSG_TYPE_KEY, KBCfgBase.JSON_MSG_TYPE_GET_PARA);
+            readCfgReq.put(KBCfgBase.JSON_FIELD_SUBTYPE, KBCfgType.SensorPara);
+            readCfgReq.put(KBCfgSensorBase.JSON_SENSOR_TYPE, nSensorType);
+            readConfig(readCfgReq, callback);
+        } catch (JSONException except)
+        {
+            except.printStackTrace();
+            callback.onReadComplete(false, null,
+                    new KBException(KBErrorCode.CfgJSONError,
+                            "create JSON object failed"));
+        }
     }
 
     //modify single config
@@ -778,13 +835,6 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
     //modify config list
     public void modifyConfig(ArrayList<KBCfgBase> cfgList, ActionCallback callback)
     {
-        if (mActionStatus != ACTION_IDLE)
-        {
-            if (callback != null) {
-                callback.onActionComplete(false, new KBException(KBErrorCode.CfgBusy, "Device was busy"));
-            }
-            return;
-        }
         if (state != KBConnState.Connected)
         {
             if (callback != null) {
@@ -803,7 +853,13 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         }
 
         //get configruation json
-        String strJsonCfgData = KBCfgHandler.objectsToJsonString(cfgList);
+        String strJsonCfgData = null;
+        try
+        {
+            strJsonCfgData = KBCfgHandler.objectsToJsonString(cfgList);
+        }catch (JSONException except){
+            except.printStackTrace();
+        }
         if (strJsonCfgData == null || strJsonCfgData.length() == 0){
             if (callback != null) {
                 callback.onActionComplete(false, new KBException(KBErrorCode.CfgInputInvalid, "Input parameters to json failed"));
@@ -811,48 +867,30 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
             return;
         }
 
-        //save data
-        mByDownloadDatas = strJsonCfgData.getBytes(StandardCharsets.UTF_8);
-        mByDownDataType = CENT_PERP_TX_JSON_DATA;
-        mWriteCfgCallback = callback;
-        mToBeCfgData = cfgList;
+        //create action object
+        ActionCommand command = new ActionCommand(ActionType.ACTION_WRITE_CFG, MAX_WRITE_CFG_TIMEOUT);
+        command.downDataBuff = strJsonCfgData.getBytes(StandardCharsets.UTF_8);
+        command.downDataType = CENT_PERP_TX_JSON_DATA;
+        command.actionCallback = callback;
+        command.toBeCfgData = cfgList;
+        mActionList.add(command);
 
         //write data
-        startNewAction(ACTION_WRITE_CFG, MAX_WRITE_CFG_TIMEOUT);
-        sendNextCfgData(0);
+        executeNextAction();
     }
 
     //send sensor message request to device
-    public void sendSensorRequest(byte[] msgReq, ReadSensorCallback callback)
+    private void sendHexMessage(byte[] msgReq, ActionType actionType, Object callback)
     {
-        if (mActionStatus != ACTION_IDLE)
-        {
-            if (callback != null) {
-                callback.onReadComplete(false, null, new KBException(KBErrorCode.CfgBusy, "Device was busy"));
-            }
-            return;
-        }
-        if (state != KBConnState.Connected)
-        {
-            if (callback != null) {
-                callback.onReadComplete(false, null, new KBException(KBErrorCode.CfgStateError, "Device was disconnected"));
-            }
-            return;
-        }
+        //create action object
+        ActionCommand command = new ActionCommand(actionType, MAX_READ_CFG_TIMEOUT);
+        command.downDataBuff = msgReq;
+        command.downDataType = CENT_PERP_TX_HEX_DATA;
+        command.actionCallback = callback;
+        mActionList.add(command);
 
-        if (msgReq == null || msgReq.length == 0) {
-            if (callback != null) {
-                callback.onReadComplete(false, null, new KBException(KBErrorCode.CfgInputInvalid, "Input parameters invalid"));
-            }
-            return;
-        }
-
-        mReadSensorCallback = callback;
-        mByDownloadDatas = msgReq;
-        mReceiveDataLen = 0;
-        mByDownDataType = CENT_PERP_TX_HEX_DATA;
-        startNewAction(ACTION_READ_SENSOR, MAX_READ_CFG_TIMEOUT);
-        sendNextCfgData(0);
+        //write data
+        executeNextAction();
     }
 
 
@@ -889,28 +927,28 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
 
     private void handleBeaconEnableSubscribeComplete()
     {
-        cancelActionTimer();
+		if (mActionList.size() == 0)
+		{
+			return;
+		}
+        ActionCommand action = cancelActionTimer();
 
         if (mToAddedSubscribeInstance != null)
         {
             this.notifyData2ClassMap.put(mToAddedTriggerType, mToAddedSubscribeInstance);
             mToAddedSubscribeInstance = null;
-
-            if (mEnableSubscribeNotifyCallback != null) {
-                ActionCallback tmpAction = mEnableSubscribeNotifyCallback;
-                mEnableSubscribeNotifyCallback = null;
-                tmpAction.onActionComplete(true, null);
-            }
         }
         else
         {
             this.notifyData2ClassMap.clear();
-            if (mEnableSubscribeNotifyCallback != null) {
-                ActionCallback tmpAction = mEnableSubscribeNotifyCallback;
-                mEnableSubscribeNotifyCallback = null;
-                tmpAction.onActionComplete(true, null);
-            }
         }
+
+        if (action.actionCallback != null) {
+            ActionCallback tmpAction = (ActionCallback)action.actionCallback;
+            tmpAction.onActionComplete(true, null);
+        }
+
+        mMsgHandler.sendEmptyMessageDelayed(MSG_START_EXECUTE_NEXT_MSG, 10);
     }
 
     private void connectingTimeout()
@@ -918,87 +956,38 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         this.closeBeacon(KBConnectionEvent.ConnTimeout);
     }
 
-    private void cancelActionTimer()
-    {
-        mMsgHandler.removeMessages(MSG_ACTION_TIME_OUT);
-        mActionStatus = ACTION_IDLE;
-    }
-
-    private boolean startNewAction(int nNewAction, int timeout)
-    {
-        if (mActionStatus != ACTION_IDLE)
-        {
-            return false;
-        }
-
-        mActionStatus = nNewAction;
-        if (timeout > 0)
-        {
-            mMsgHandler.sendEmptyMessageDelayed(MSG_ACTION_TIME_OUT, timeout);
-        }
-
-        return true;
-    }
-
     //connect device timeout
-    private void actionTimeout()
-    {
-        if (mActionStatus == ACTION_INIT_READ_CFG)
-        {
-            mActionStatus = ACTION_IDLE;
+    private void actionTimeout() {
+        ActionCommand action = mActionList.remove(0);
+        mActionDoing = false;
+
+        if (action.actionType == ActionType.ACTION_INIT_READ_CFG) {
             closeBeacon(KBConnectionEvent.ConnTimeout);
-        }
-        else if (mActionStatus == ACTION_USR_READ_CFG)
-        {
-            mActionStatus = ACTION_IDLE;
-            if (mReadCfgCallback != null){
-                ReadConfigCallback tempCallback = mReadCfgCallback;
-                mReadCfgCallback = null;
-                tempCallback.onReadComplete(false, null, new KBException(KBErrorCode.CfgTimeout,
-                        "Read parameters from device timeout"));
+        } else {
+            if (action.actionCallback == null) {
+                return;
             }
-        }
-        else if (mActionStatus == ACTION_WRITE_CFG)
-        {
-            mActionStatus = ACTION_IDLE;
-            if (mWriteCfgCallback != null)
-            {
-                ActionCallback tmpAction = mWriteCfgCallback;
-                mWriteCfgCallback = null;
-                tmpAction.onActionComplete(false, new KBException(KBErrorCode.CfgTimeout,
+
+            if (action.actionType == ActionType.ACTION_USR_READ_CFG) {
+                ((ReadConfigCallback) action.actionCallback).onReadComplete(false, null, new KBException(KBErrorCode.CfgTimeout,
+                        "Read parameters from device timeout"));
+            } else if (action.actionType == ActionType.ACTION_WRITE_CFG) {
+                ((ActionCallback) action.actionCallback).onActionComplete(false, new KBException(KBErrorCode.CfgTimeout,
                         "Write parameters to device timeout"));
-            }
-        }
-        else if (mActionStatus == ACTION_WRITE_CMD)
-        {
-            mActionStatus = ACTION_IDLE;
-            if (mWriteCmdCallback != null)
-            {
-                ActionCallback tmpAction = mWriteCfgCallback;
-                mWriteCfgCallback = null;
-                tmpAction.onActionComplete(false, new KBException(KBErrorCode.CfgTimeout,
+            } else if (action.actionType == ActionType.ACTION_WRITE_CMD) {
+                ((ActionCallback) action.actionCallback).onActionComplete(false, new KBException(KBErrorCode.CfgTimeout,
                         "Write command to device timeout"));
-            }
-        }
-        else if (mActionStatus == ACTION_READ_SENSOR)
-        {
-            mActionStatus = ACTION_IDLE;
-            if (mReadSensorCallback != null)
-            {
-                ReadSensorCallback tempCallback = mReadSensorCallback;
-                mReadSensorCallback = null;
-                tempCallback.onReadComplete(false, null, new KBException(KBErrorCode.CfgTimeout,
-                        "Read parameters from device timeout"));
-            }
-        }
-        else if (mActionStatus == ACTION_ENABLE_NTF)
-        {
-            mActionStatus = ACTION_IDLE;
-            if (mEnableSubscribeNotifyCallback != null)
-            {
-                ActionCallback tmpAction = mEnableSubscribeNotifyCallback;
-                mEnableSubscribeNotifyCallback = null;
-                tmpAction.onActionComplete(false, new KBException(KBErrorCode.CfgTimeout,
+            } else if (action.actionType == ActionType.ACTION_SENSOR_READ_INFO) {
+                ((ReadSensorInfoCallback) action.actionCallback).onReadComplete(false, null, new KBException(KBErrorCode.CfgTimeout,
+                        "Read sensor from device timeout"));
+            } else if (action.actionType == ActionType.ACTION_SENSOR_READ_RECORD) {
+                ((ReadSensorInfoCallback) action.actionCallback).onReadComplete(false, null, new KBException(KBErrorCode.CfgTimeout,
+                        "Read sensor from device timeout"));
+            }else if (action.actionType == ActionType.ACTION_SENSOR_COMMAND) {
+                ((SensorCommandCallback) action.actionCallback).onCommandComplete(false, null, new KBException(KBErrorCode.CfgTimeout,
+                        "Read sensor from device timeout"));
+            }else if (action.actionType == ActionType.ACTION_ENABLE_NTF) {
+                ((ActionCallback) action.actionCallback).onActionComplete(false, new KBException(KBErrorCode.CfgTimeout,
                         "Enable notification timeout"));
             }
         }
@@ -1018,8 +1007,9 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
             if (state == KBConnState.Connecting) {
                 //common para
                 int firstReadRoundSubType = 0;
+                int secondRoundReadSubType = 0;
                 int readCfgTypeNum = 0;
-                mNextInitReadCfgSubtype = 0;
+
                 if (mConnPara.readCommPara){
                     firstReadRoundSubType = (firstReadRoundSubType | KBCfgType.CommonPara);
                     readCfgTypeNum = readCfgTypeNum + 1;
@@ -1039,7 +1029,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
                     }
                     else
                     {
-                        mNextInitReadCfgSubtype = (mNextInitReadCfgSubtype | KBCfgType.TriggerPara);
+                        secondRoundReadSubType = (secondRoundReadSubType | KBCfgType.TriggerPara);
                     }
                 }
 
@@ -1051,15 +1041,42 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
                     }
                     else
                     {
-                        mNextInitReadCfgSubtype = (mNextInitReadCfgSubtype | KBCfgType.SensorPara);
+                        secondRoundReadSubType = (secondRoundReadSubType | KBCfgType.SensorPara);
                     }
                 }
 
-                if (firstReadRoundSubType > 0) {
-                    HashMap<String, Object> readCfgReq = new HashMap<>(10);
-                    readCfgReq.put(KBCfgBase.JSON_MSG_TYPE_KEY, KBCfgBase.JSON_MSG_TYPE_GET_PARA);
-                    readCfgReq.put(KBCfgBase.JSON_FIELD_SUBTYPE, firstReadRoundSubType);
-                    configReadBeaconParamaters(readCfgReq, ACTION_INIT_READ_CFG);
+                JSONObject readCfgReq = new JSONObject();
+                try {
+                    if (firstReadRoundSubType + secondRoundReadSubType > 0) {
+                        if (firstReadRoundSubType > 0) {
+                            readCfgReq.put(KBCfgBase.JSON_MSG_TYPE_KEY, KBCfgBase.JSON_MSG_TYPE_GET_PARA);
+                            readCfgReq.put(KBCfgBase.JSON_FIELD_SUBTYPE, firstReadRoundSubType);
+                            String strJsonCfgData = KBCfgHandler.cmdParaToJsonString(readCfgReq);
+                            startReadBeaconParameters(ActionType.ACTION_INIT_READ_CFG, strJsonCfgData, null);
+                        }
+
+                        if (secondRoundReadSubType > 0) {
+                            readCfgReq.put(KBCfgBase.JSON_MSG_TYPE_KEY, KBCfgBase.JSON_MSG_TYPE_GET_PARA);
+                            readCfgReq.put(KBCfgBase.JSON_FIELD_SUBTYPE, secondRoundReadSubType);
+                            String strJsonCfgData = KBCfgHandler.cmdParaToJsonString(readCfgReq);
+                            startReadBeaconParameters(ActionType.ACTION_INIT_READ_CFG, strJsonCfgData, null);
+                        }
+                    }else{
+                        if (isSupportSensorDataNotification() && notifyData2ClassMap.size() > 0)
+                        {
+                            startEnableIndication(KBUtility.KB_CFG_SERVICE_UUID, KBUtility.KB_IND_CHAR_UUID, true);
+                        }
+                        else
+                        {
+                            mMsgHandler.removeMessages(MSG_CONNECT_TIMEOUT);
+                            state = KBConnState.Connected;
+                            mMsgHandler.sendEmptyMessageDelayed(MSG_NTF_CONNECT_SUCCESS, 200);
+                        }
+                    }
+                }
+                catch (JSONException except)
+                {
+                    except.printStackTrace();
                 }
             }
         }
@@ -1169,12 +1186,13 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
 
     private void sendNextCfgData(int nReqDataSeq)
     {
-        if (mByDownloadDatas == null)
+        ActionCommand action = mActionList.get(0);
+        if (action.downDataBuff == null)
         {
             return;
         }
 
-        if (nReqDataSeq >= mByDownloadDatas.length)
+        if (nReqDataSeq >= action.downDataBuff.length)
         {
             Log.v(LOG_TAG, "tx config data complete");
             return;
@@ -1184,119 +1202,168 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         byte nPduTag = PDU_TAG_START;
         int nMaxTxDataSize = mAuthHandler.getMtuSize() - MSG_PDU_HEAD_LEN;
         int nDataLen = nMaxTxDataSize;
-        if (mByDownloadDatas.length <= nMaxTxDataSize)
+        if (action.downDataBuff.length <= nMaxTxDataSize)
         {
             nPduTag = PDU_TAG_SINGLE;
-            nDataLen = mByDownloadDatas.length;
+            nDataLen = action.downDataBuff.length;
         }
         else if (nReqDataSeq == 0)
         {
             nPduTag = PDU_TAG_START;
             nDataLen = nMaxTxDataSize;
         }
-        else if (nReqDataSeq + nMaxTxDataSize < mByDownloadDatas.length)
+        else if (nReqDataSeq + nMaxTxDataSize < action.downDataBuff.length)
         {
             nPduTag = PDU_TAG_MIDDLE;
             nDataLen = nMaxTxDataSize;
         }
-        else if (nReqDataSeq + nMaxTxDataSize >= mByDownloadDatas.length)
+        else if (nReqDataSeq + nMaxTxDataSize >= action.downDataBuff.length)
         {
             nPduTag = PDU_TAG_END;
-            nDataLen = mByDownloadDatas.length - nReqDataSeq;
+            nDataLen = action.downDataBuff.length - nReqDataSeq;
         }
 
         //down data head
         byte[] downData = new byte[nDataLen + MSG_PDU_HEAD_LEN];
-        downData[0] = (byte)(((mByDownDataType << 4) + nPduTag) & 0xFF);
+        downData[0] = (byte)(((action.downDataType << 4) + nPduTag) & 0xFF);
         byte nNetOrderSeq[] = KBUtility.htonbyte((short)nReqDataSeq);
         downData[1] = nNetOrderSeq[0];
         downData[2] = nNetOrderSeq[1];
 
         //fill data body
-        System.arraycopy(mByDownloadDatas, nReqDataSeq, downData, 3, nDataLen);
+        System.arraycopy(action.downDataBuff, nReqDataSeq, downData, 3, nDataLen);
 
         //send to device
-        Log.v(LOG_TAG, "tx data seq:" + nReqDataSeq);
+        Log.v(LOG_TAG, "Tx message to device, seq:" + nReqDataSeq + ", len:" + nDataLen);
         startWriteCfgValue(downData);
+    }
+
+    private ActionCommand cancelActionTimer()
+    {
+        ActionCommand action = null;
+        mMsgHandler.removeMessages(MSG_ACTION_TIME_OUT);
+        if (mActionList.size() > 0) {
+            action = mActionList.remove(0);
+        }
+        mActionDoing = false;
+        return action;
+    }
+
+    private void executeNextAction()
+    {
+        if (mActionDoing){
+            Log.v(LOG_TAG, "action busy, now wait device enter idle");
+            return;
+        }
+
+        ActionCommand action = mActionList.get(0);
+        if (action.actionType == ActionType.ACTION_ENABLE_NTF){
+            startEnableIndication(KBUtility.KB_CFG_SERVICE_UUID, KBUtility.KB_IND_CHAR_UUID, true);
+        }
+        else if (action.actionType == ActionType.ACTION_DISABLE_NTF) {
+            startEnableIndication(KBUtility.KB_CFG_SERVICE_UUID, KBUtility.KB_IND_CHAR_UUID, false);
+        }else {
+            sendNextCfgData(0);
+        }
+
+        mActionDoing = true;
+        mMsgHandler.sendEmptyMessageDelayed(MSG_ACTION_TIME_OUT, action.actionTimeout);
     }
 
     private void configHandleDownCmdAck(byte frameType, byte byDataType, byte[]data)
     {
         short nReqDataSeq = KBUtility.htonshort(data[0], data[1]);
         short nAckCause = KBUtility.htonshort(data[4], data[5]);
+        if (mActionList.size() == 0){
+            Log.e(LOG_TAG, "action state error");
+            return;
+        }
+
+        Log.v(LOG_TAG, "Receive device ack:" + nAckCause + ",seq:" + nReqDataSeq);
 
         if (nAckCause == BEACON_ACK_CAUSE_CMD_RCV)  //beacon has received the command, now start execute
         {
             if (byDataType == PERP_CENT_TX_JSON_ACK || byDataType == PERP_CENT_TX_HEX_ACK)
             {
+                ActionCommand actionCommand = mActionList.get(0);
                 if (data.length > DATA_ACK_HEAD_LEN) {
-                    System.arraycopy(data, DATA_ACK_HEAD_LEN, mReceiveData, 0, data.length - DATA_ACK_HEAD_LEN);
-                    mReceiveDataLen = (data.length - DATA_ACK_HEAD_LEN);
+                    System.arraycopy(data, DATA_ACK_HEAD_LEN, actionCommand.receiveData, 0, data.length - DATA_ACK_HEAD_LEN);
+                    actionCommand.receiveDataLen = (data.length - DATA_ACK_HEAD_LEN);
 
-                    Log.v(LOG_TAG, "beacon has receive command:" + mReceiveDataLen);
+                    Log.v(LOG_TAG, "beacon has receive command:" + actionCommand.receiveDataLen);
 
                     //if has next data, send report ack
                     if (byDataType == PERP_CENT_TX_HEX_ACK) {
-                        configSendDataRptAck((short) mReceiveDataLen, (byte) CENT_PERP_HEX_DATA_RPT_ACK, (short) 0);
+                        configSendDataRptAck((short) actionCommand.receiveDataLen, (byte) CENT_PERP_HEX_DATA_RPT_ACK, (short) 0);
                     }else{
-                        configSendDataRptAck((short) mReceiveDataLen, (byte) CENT_PERP_DATA_RPT_ACK, (short) 0);
+                        configSendDataRptAck((short) actionCommand.receiveDataLen, (byte) CENT_PERP_DATA_RPT_ACK, (short) 0);
                     }
                 }
             }
         }
         else if (nAckCause == BEACON_ACK_SUCCESS)   //write command receive
         {
-            if (ACTION_READ_SENSOR == mActionStatus
-                || ACTION_USR_READ_CFG == mActionStatus
-                || ACTION_INIT_READ_CFG == mActionStatus)
+            ActionType actionType = mActionList.get(0).actionType;
+
+            if (ActionType.ACTION_SENSOR_READ_INFO == actionType
+                    || ActionType.ACTION_SENSOR_READ_RECORD == actionType
+                    || ActionType.ACTION_SENSOR_COMMAND == actionType
+                    || ActionType.ACTION_USR_READ_CFG == actionType
+                    || ActionType.ACTION_INIT_READ_CFG == actionType)
             {
+                ActionCommand action = mActionList.get(0);
                 if (data.length > DATA_ACK_HEAD_LEN) {
-                    System.arraycopy(data, DATA_ACK_HEAD_LEN, mReceiveData, 0, data.length - DATA_ACK_HEAD_LEN);
-                    mReceiveDataLen = (data.length - DATA_ACK_HEAD_LEN);
+                    System.arraycopy(data, DATA_ACK_HEAD_LEN, action.receiveData, 0, data.length - DATA_ACK_HEAD_LEN);
+                    action.receiveDataLen = (data.length - DATA_ACK_HEAD_LEN);
                 }
 
                 if (byDataType == PERP_CENT_TX_JSON_ACK) {
+                    Log.v(LOG_TAG, "receive json ack complete, data len:" + action.receiveDataLen);
+
                     handleJsonRptDataComplete();
                 }
                 else if (byDataType == PERP_CENT_TX_HEX_ACK)
                 {
+                    Log.v(LOG_TAG, "receive hex ack complete, data len:" + action.receiveDataLen);
+
                     handleHexRptDataComplete();
                 }
             }
-            else if (ACTION_WRITE_CFG == mActionStatus)
+            else if (ActionType.ACTION_WRITE_CFG == actionType)
             {
-                cancelActionTimer();
+                ActionCommand action = cancelActionTimer();
 
                 //update config to local
-                if (mToBeCfgData != null)
+                if (action.toBeCfgData != null)
                 {
-                    mCfgMgr.updateDeviceConfig(mToBeCfgData);
-                    mToBeCfgData = null;
+                    try {
+                        mCfgMgr.updateDeviceConfig(action.toBeCfgData);
+                    }catch (JSONException except){
+                        except.printStackTrace();
+                    }
                 }
 
                 //download data complete
-                if (mWriteCfgCallback != null) {
-                    ActionCallback tmpAction = mWriteCfgCallback;
-                    mWriteCfgCallback = null;
-
-                    tmpAction.onActionComplete(true, null);
+                if (action.actionCallback != null) {
+                    ((ActionCallback)action.actionCallback).onActionComplete(true, null);
                 }
+
+                mMsgHandler.sendEmptyMessageDelayed(MSG_START_EXECUTE_NEXT_MSG, 10);
             }
-            else if (ACTION_WRITE_CMD == mActionStatus)
+            else if (ActionType.ACTION_WRITE_CMD == actionType)
             {
-                cancelActionTimer();
+                ActionCommand action = cancelActionTimer();
 
                 //download data complete
-                if (mWriteCmdCallback != null) {
-                    ActionCallback tmpAction = mWriteCmdCallback;
-                    mWriteCmdCallback = null;
-                    tmpAction.onActionComplete(true, null);
+                if (action.actionCallback != null) {
+                    ((ActionCallback)action.actionCallback).onActionComplete(true, null);
                 }
+                mMsgHandler.sendEmptyMessageDelayed(MSG_START_EXECUTE_NEXT_MSG, 10);
             }
         }
         else if (nAckCause == BEACON_ACK_EXPECT_NEXT)
         {
-            if (ACTION_IDLE != mActionStatus)
+            if (mActionDoing)
             {
                 this.sendNextCfgData(nReqDataSeq);
             }
@@ -1304,66 +1371,48 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         else if (nAckCause == BEACON_ACK_EXE_CMD_CMP)
         {
             Log.v(LOG_TAG, "beacon execute command complete");
+            mMsgHandler.sendEmptyMessageDelayed(MSG_START_EXECUTE_NEXT_MSG, 10);
         }
         else   //command failed
         {
             Log.e(LOG_TAG, "beacon command execute failed:" +  nAckCause);
+            ActionType actionType = mActionList.get(0).actionType;
+            ActionCommand action = cancelActionTimer();
 
-            if (ACTION_INIT_READ_CFG == mActionStatus) {
-                cancelActionTimer();
-
-                closeBeacon(KBConnectionEvent.ConnException);
-            }
-            else if (ACTION_WRITE_CFG == mActionStatus)
+            if (ActionType.ACTION_INIT_READ_CFG == actionType)
             {
-                cancelActionTimer();
-                mToBeCfgData = null;
-
-                if (mWriteCfgCallback != null) {
-                    ActionCallback tmpAction = mWriteCfgCallback;
-                    mWriteCfgCallback = null;
-                    tmpAction.onActionComplete(false, new KBException(KBErrorCode.CfgFailed,
+                closeBeacon(KBConnectionEvent.ConnException);
+                return;
+            }
+            else if (action.actionCallback != null)
+            {
+                if (ActionType.ACTION_WRITE_CFG == actionType
+                        || ActionType.ACTION_WRITE_CMD == actionType) {
+                    ((ActionCallback) action.actionCallback).onActionComplete(false, new KBException(KBErrorCode.CfgFailed,
                             nAckCause,
                             "Write parameters to device failed"));
-                }
-            }
-            else if (ACTION_WRITE_CMD == mActionStatus)
-            {
-                cancelActionTimer();
-
-                if (mWriteCmdCallback != null) {
-                    ActionCallback tmpAction = mWriteCmdCallback;
-                    mWriteCmdCallback = null;
-                    tmpAction.onActionComplete(false, new KBException(KBErrorCode.CfgFailed,
-                            nAckCause,
-                            "Write command to device failed"));
-                }
-            }
-            else if (ACTION_USR_READ_CFG == mActionStatus) {
-                cancelActionTimer();
-
-                //read config data failed
-                if (mReadCfgCallback != null) {
-                    ReadConfigCallback tempCallback = mReadCfgCallback;
-                    mReadCfgCallback = null;
-                    tempCallback.onReadComplete(false, null, new KBException(KBErrorCode.CfgFailed,
+                } else if (ActionType.ACTION_USR_READ_CFG == actionType) {
+                    ((ReadConfigCallback) action.actionCallback).onReadComplete(false, null, new KBException(KBErrorCode.CfgFailed,
                             nAckCause,
                             "Read parameters from device failed"));
-                }
-            }
-            else if (ACTION_READ_SENSOR == mActionStatus) {
-                cancelActionTimer();
-
-                //read config data failed
-                if (mReadSensorCallback != null) {
-                    ReadSensorCallback tempCallback = mReadSensorCallback;
-                    mReadSensorCallback = null;
-                    Log.v(LOG_TAG, "beacon sensor read execute failed");
-                    tempCallback.onReadComplete(false, null, new KBException(KBErrorCode.CfgFailed,
+                } else if (ActionType.ACTION_SENSOR_READ_INFO == actionType) {
+                    ((ReadSensorInfoCallback) action.actionCallback).onReadComplete(false, null, new KBException(KBErrorCode.CfgFailed,
                             nAckCause,
-                            "Read parameters from device failed"));
+                            "Read sensor info from device failed"));
+                } else if (ActionType.ACTION_SENSOR_READ_RECORD == actionType) {
+                    ((ReadSensorRspCallback) action.actionCallback).onReadComplete(false, null, new KBException(KBErrorCode.CfgFailed,
+                            nAckCause,
+                            "Read sensor record from device failed"));
+                } else if (ActionType.ACTION_SENSOR_COMMAND == actionType) {
+                    ((SensorCommandCallback) action.actionCallback).onCommandComplete(false,
+                            null,
+                            new KBException(KBErrorCode.CfgFailed,
+                                    nAckCause,
+                                    "Execute sensor command failed"));
                 }
             }
+
+            mMsgHandler.sendEmptyMessageDelayed(MSG_START_EXECUTE_NEXT_MSG, 10);
         }
     }
 
@@ -1372,42 +1421,49 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         boolean bRcvDataCmp = false;
         short nDataSeq = KBUtility.htonshort(data[0], data[1]);
         int nDataPayloadLen = data.length - 2;
+
+        if (mActionList.size() == 0){
+            Log.e(LOG_TAG, "receive data report in no action state");
+            return;
+        }
+        ActionCommand action = mActionList.get(0);
+
         //frame start
         if (frameType == PDU_TAG_START)
         {
             //new read configruation
-            System.arraycopy(data, 2, mReceiveData, 0, nDataPayloadLen);
-            mReceiveDataLen = nDataPayloadLen;
+            System.arraycopy(data, 2, action.receiveData, 0, nDataPayloadLen);
+            action.receiveDataLen = nDataPayloadLen;
 
             //send ack
-            configSendDataRptAck((short)mReceiveDataLen, byDataType, (short)0);
+            configSendDataRptAck((short)action.receiveDataLen, byDataType, (short)0);
         }
         else if (frameType == PDU_TAG_MIDDLE)
         {
-            if (nDataSeq != mReceiveDataLen || mReceiveDataLen + nDataPayloadLen > MAX_BUFFER_DATA_SIZE)
+            if (nDataSeq != action.receiveDataLen || action.receiveDataLen + nDataPayloadLen > MAX_BUFFER_DATA_SIZE)
             {
-                Log.v(LOG_TAG, "Middle receive unknown data sequence:" + nDataSeq + ", expect seq:" + mReceiveDataLen);
-                configSendDataRptAck((short)mReceiveDataLen, byDataType, (short)0x1);
+                Log.v(LOG_TAG, "Middle receive unknown data sequence:" + nDataSeq + ", expect seq:" + action.receiveDataLen);
+                configSendDataRptAck((short)action.receiveDataLen, byDataType, (short)0x1);
             }
             else
             {
-                System.arraycopy(data, 2, mReceiveData, mReceiveDataLen, nDataPayloadLen);
-                mReceiveDataLen += nDataPayloadLen;
+                System.arraycopy(data, 2, action.receiveData, action.receiveDataLen, nDataPayloadLen);
+                action.receiveDataLen += nDataPayloadLen;
 
-                configSendDataRptAck((short)mReceiveDataLen, byDataType, (short)0x0);
+                configSendDataRptAck((short)action.receiveDataLen, byDataType, (short)0x0);
             }
         }
         else if (frameType == PDU_TAG_END)
         {
-            if (nDataSeq != mReceiveDataLen || mReceiveDataLen + nDataPayloadLen > MAX_BUFFER_DATA_SIZE)
+            if (nDataSeq != action.receiveDataLen || action.receiveDataLen + nDataPayloadLen > MAX_BUFFER_DATA_SIZE)
             {
-                Log.v(LOG_TAG, "End receive unknown data sequence:" + nDataSeq + ", expect seq:" + mReceiveDataLen);
-                configSendDataRptAck((short)mReceiveDataLen, byDataType, (short)0x1);
+                Log.v(LOG_TAG, "End receive unknown data sequence:" + nDataSeq + ", expect seq:" + action.receiveDataLen);
+                configSendDataRptAck((short)action.receiveDataLen, byDataType, (short)0x1);
             }
             else
             {
-                System.arraycopy(data, 2, mReceiveData, mReceiveDataLen, nDataPayloadLen);
-                mReceiveDataLen += nDataPayloadLen;
+                System.arraycopy(data, 2, action.receiveData, action.receiveDataLen, nDataPayloadLen);
+                action.receiveDataLen += nDataPayloadLen;
 
                 //configSendDataRptAck((short)mReceiveDataLen, byDataType, (short)0x0);
                 bRcvDataCmp = true;
@@ -1416,8 +1472,8 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         else if (frameType == PDU_TAG_SINGLE)
         {
             //new read message command
-            System.arraycopy(data, 2, mReceiveData, mReceiveDataLen, nDataPayloadLen);
-            mReceiveDataLen += nDataPayloadLen;
+            System.arraycopy(data, 2, action.receiveData, action.receiveDataLen, nDataPayloadLen);
+            action.receiveDataLen += nDataPayloadLen;
 
             //configSendDataRptAck((short)mReceiveDataLen, byDataType, (short)0x0);
             bRcvDataCmp = true;
@@ -1425,13 +1481,14 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
 
         if (bRcvDataCmp)
         {
-            Log.v(LOG_TAG, "receive report data complete:" + nDataSeq + ", expect seq:" + mReceiveDataLen);
-
             if (byDataType == PERP_CENT_DATA_RPT) {
+                Log.v(LOG_TAG, "receive json report complete:" + nDataSeq + ", expect seq:" + action.receiveDataLen);
+
                 handleJsonRptDataComplete();
             }
             else if (byDataType == PERP_CENT_HEX_DATA_RPT)
             {
+                Log.v(LOG_TAG, "receive hex report complete:" + nDataSeq + ", expect seq:" + action.receiveDataLen);
                 handleHexRptDataComplete();
             }
         }
@@ -1463,35 +1520,59 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
 
     private void handleHexRptDataComplete()
     {
-        if (mActionStatus == ACTION_READ_SENSOR) {
-            this.cancelActionTimer();
+        if (mActionList.size() == 0){
+            Log.e(LOG_TAG, "receive hex report in no action state");
+            return;
+        }
+        ActionCommand action = this.cancelActionTimer();
 
-            byte[] validData = null;
-            if (mReceiveDataLen > 0) {
-                validData = new byte[mReceiveDataLen];
-                System.arraycopy(mReceiveData, 0, validData, 0, mReceiveDataLen);
-                if (validData[0] == 0x10) {
-                    printBleLogMessage(validData);
-                    return;
-                }
+        if (action.actionType == ActionType.ACTION_SENSOR_READ_INFO) {
+            KBSensorReadInfoRsp readRsp = null;
+            boolean readSuccess = true;
+            KBException exception = null;
+
+            if (action.receiveDataLen > 0) {
+                byte[] validData = new byte[action.receiveDataLen];
+                System.arraycopy(action.receiveData, 0, validData, 0, action.receiveDataLen);
+                readRsp = (KBSensorReadInfoRsp)mSensorRecordsMgr.parseSensorResponse(validData);
             }
 
-            if (mReadSensorCallback != null) {
-
-                ReadSensorCallback tempCallback = mReadSensorCallback;
-                mReadSensorCallback = null;
-                tempCallback.onReadComplete(true, validData, null);
+            if (readRsp == null) {
+                readSuccess = false;
+                exception = new KBException(KBErrorCode.CfgParseSensorMsgFailed, "parse sensor info response failed");
+            }
+            if (action.actionCallback != null) {
+                ((ReadSensorInfoCallback) action.actionCallback).onReadComplete(readSuccess, readRsp, exception);
             }
         }
-    }
+        else if (action.actionType == ActionType.ACTION_SENSOR_READ_RECORD) {
+            KBSensorReadRecordRsp readRsp = null;
+            boolean readSuccess = true;
+            KBException exception = null;
+            if (action.receiveDataLen > 0) {
+                byte[] validData = new byte[action.receiveDataLen];
+                System.arraycopy(action.receiveData, 0, validData, 0, action.receiveDataLen);
+                readRsp = (KBSensorReadRecordRsp)mSensorRecordsMgr.parseSensorResponse(validData);
+            }
 
-    private void printBleLogMessage(byte[] logMessage)
-    {
-        byte[] byStrMessage = new byte[logMessage.length -1];
-        System.arraycopy(logMessage, 1, byStrMessage, 0, byStrMessage.length);
+            if (readRsp == null) {
+                readSuccess = false;
+                exception = new KBException(KBErrorCode.CfgParseSensorMsgFailed, "parse sensor info response failed");
+            }
+            if (action.actionCallback != null) {
+                ((ReadSensorRspCallback) action.actionCallback).onReadComplete(readSuccess, readRsp, exception);
+            }
+        } else if (action.actionType == ActionType.ACTION_SENSOR_COMMAND) {
+            byte[] validData = null;
+            if (action.receiveDataLen > 0) {
+                validData = new byte[action.receiveDataLen];
+                System.arraycopy(action.receiveData, 0, validData, 0, action.receiveDataLen);
+            }
 
-        String jstrLogString = new String(byStrMessage);
-        Log.e(LOG_TAG, jstrLogString);
+            ((SensorCommandCallback) action.actionCallback).onCommandComplete(true, validData, null);
+        }
+
+        mMsgHandler.sendEmptyMessageDelayed(MSG_START_EXECUTE_NEXT_MSG, 10);
     }
 
     boolean parseAdvPacket(ScanRecord data, int nRssi, String strName)
@@ -1504,13 +1585,19 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
 
     private void handleJsonRptDataComplete()
     {
-        if (mReceiveDataLen == 0)
+        if (mActionList.size() == 0){
+            Log.e(LOG_TAG, "receive hex report in no action state");
+            return;
+        }
+        ActionCommand action = cancelActionTimer();
+        if (action.receiveDataLen == 0)
         {
+            mMsgHandler.sendEmptyMessageDelayed(MSG_START_EXECUTE_NEXT_MSG, 10);
             return;
         }
 
-        byte[] validData = new byte[mReceiveDataLen];
-        System.arraycopy(mReceiveData, 0, validData, 0, mReceiveDataLen);
+        byte[] validData = new byte[action.receiveDataLen];
+        System.arraycopy(action.receiveData, 0, validData, 0, action.receiveDataLen);
         String jsonString = new String(validData);
         JSONObject mRspJason = null;
         try
@@ -1524,36 +1611,29 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
 
         if (mRspJason == null || mRspJason.length() == 0) {
             Log.e(LOG_TAG, "Parse Json response failed");
-            if (mActionStatus == ACTION_INIT_READ_CFG) {
+            if (action.actionType == ActionType.ACTION_INIT_READ_CFG)
+            {
                 closeBeacon(KBConnectionEvent.ConnException);
-            } else if (mActionStatus == ACTION_USR_READ_CFG) {
-                this.cancelActionTimer();
-                if (mReadCfgCallback != null) {
-                    ReadConfigCallback tempCallback = mReadCfgCallback;
-                    mReadCfgCallback = null;
-
-                    tempCallback.onReadComplete(false, null, new KBException(KBErrorCode.CfgReadNull,
+            }
+            else if (action.actionType == ActionType.ACTION_USR_READ_CFG)
+            {
+                if (action.actionCallback != null) {
+                    ((ReadConfigCallback)action.actionCallback).onReadComplete(false, null, new KBException(KBErrorCode.CfgReadNull,
                             "Read parameters and return null"));
                 }
+
+                //next msg
+                mMsgHandler.sendEmptyMessageDelayed(MSG_START_EXECUTE_NEXT_MSG, 10);
             }
         } else {
             //check if is connecting
-            if (mActionStatus == ACTION_INIT_READ_CFG) {
-                this.cancelActionTimer();
-
-                //invalid connection timer
-                mMsgHandler.removeMessages(MSG_CONNECT_TIMEOUT);
-
+            if (action.actionType == ActionType.ACTION_INIT_READ_CFG) {
                 //update configuration
                 mCfgMgr.updateDeviceCfgFromJsonObject(mRspJason);
 
                 //check if has no read information
-                if (mNextInitReadCfgSubtype != 0) {
-                    HashMap<String, Object> readCfgReq = new HashMap<>(10);
-                    readCfgReq.put(KBCfgBase.JSON_MSG_TYPE_KEY, KBCfgBase.JSON_MSG_TYPE_GET_PARA);
-                    readCfgReq.put(KBCfgBase.JSON_FIELD_SUBTYPE, mNextInitReadCfgSubtype);
-                    mNextInitReadCfgSubtype = 0;
-                    configReadBeaconParamaters(readCfgReq, ACTION_INIT_READ_CFG);
+                if (mActionList.size() > 0) {
+                    mMsgHandler.sendEmptyMessageDelayed(MSG_START_EXECUTE_NEXT_MSG, 10);
                 }else {
                     //change connection state
                     if (isSupportSensorDataNotification() && notifyData2ClassMap.size() > 0) {
@@ -1561,55 +1641,44 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
                         mMsgHandler.sendEmptyMessageDelayed(MSG_NTF_IND_ENABLE, 100);
                     } else {
                         Log.v(LOG_TAG, "read para complete, connect to device(" + mac + ") success");
+                        mMsgHandler.removeMessages(MSG_CONNECT_TIMEOUT);
                         state = KBConnState.Connected;
                         mMsgHandler.sendEmptyMessageDelayed(MSG_NTF_CONNECT_SUCCESS, 200);
                     }
                 }
-            } else if (mActionStatus == ACTION_USR_READ_CFG) {
-                this.cancelActionTimer();
-
-                if (mReadCfgCallback != null) {
-                    ReadConfigCallback tempCallback = mReadCfgCallback;
-                    mReadCfgCallback = null;
-
+            } else if (action.actionType == ActionType.ACTION_USR_READ_CFG) {
+                if (action.actionCallback != null) {
                     //update configuration
                     mCfgMgr.updateDeviceCfgFromJsonObject(mRspJason);
 
-                    tempCallback.onReadComplete(true, mRspJason, null);
+                    ((ReadConfigCallback)action.actionCallback).onReadComplete(true, mRspJason, null);
                 }
-            } else {
-                this.cancelActionTimer();
 
+                //next message
+                mMsgHandler.sendEmptyMessageDelayed(MSG_START_EXECUTE_NEXT_MSG, 10);
+            } else {
+                mMsgHandler.sendEmptyMessageDelayed(MSG_START_EXECUTE_NEXT_MSG, 10);
                 Log.e(LOG_TAG, "receive data report error");
             }
         }
     }
 	
-    private boolean configReadBeaconParamaters(HashMap<String, Object> readCfgReq, int nActionType)
+    private boolean startReadBeaconParameters(ActionType readParaType, String readMsgCmd, final ReadConfigCallback callback)
     {
-        if (ACTION_IDLE != mActionStatus)
-        {
-            Log.e(LOG_TAG, "last action command not complete");
-            return false;
-        }
+        //create action object
+        ActionCommand command = new ActionCommand(readParaType, MAX_READ_CFG_TIMEOUT);
+        command.downDataBuff = readMsgCmd.getBytes(StandardCharsets.UTF_8);
+        command.downDataType = CENT_PERP_TX_JSON_DATA;
+        command.actionCallback = callback;
+        mActionList.add(command);
 
-        String strJsonCfgData = KBCfgBase.HashMap2JsonString(readCfgReq);
-        if (strJsonCfgData == null || strJsonCfgData.length() == 0)
-        {
-            return false;
-        }
-
-        mByDownloadDatas = strJsonCfgData.getBytes(StandardCharsets.UTF_8);
-        mByDownDataType = CENT_PERP_TX_JSON_DATA;
-        mReceiveDataLen = 0;
-        startNewAction(nActionType, MAX_READ_CFG_TIMEOUT);
-
-        sendNextCfgData(0);
+        //write data
+        executeNextAction();
 
         return true;
     }
 	
-	 //write configuration to beacon
+	 //write configruation to beacon
     @SuppressLint("MissingPermission")
     private boolean startWriteCfgValue(byte[] data)
     {
@@ -1708,6 +1777,13 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
 
                 case MSG_START_REQUST_MAX_MTU:{
                     mGattConnection.requestMtu(MAX_MTU_SIZE);
+                    break;
+                }
+
+                case MSG_START_EXECUTE_NEXT_MSG:{
+                    if (mActionList.size() > 0){
+                        executeNextAction();
+                    }
                     break;
                 }
 
@@ -1864,12 +1940,13 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
 					if (state == KBConnState.Connecting)
 					{
                         Log.v(LOG_TAG, "enable indication success, connection setup complete");
+                        mMsgHandler.removeMessages(MSG_CONNECT_TIMEOUT);
                         state = KBConnState.Connected;
                         mMsgHandler.sendEmptyMessageDelayed(MSG_NTF_CONNECT_SUCCESS, 300);
                     }
 					else
 					{                    
-						Log.v(LOG_TAG, "enable indication success, connection setup complete");
+						Log.v(LOG_TAG, "enable indication success");
                     	mMsgHandler.sendEmptyMessageDelayed(MSG_NTF_SUBSCRIBE_INDICATION_CMP, 100);
 					}
                 }
@@ -1900,5 +1977,87 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
                 mMsgHandler.sendMessage(msg);
             }
         };
+    }
+
+
+    //read device sensor summary information
+    public void readSensorDataInfo(int sensorType, ReadSensorInfoCallback callback)
+    {
+        if (state != KBConnState.Connected)
+        {
+            if (callback != null) {
+                callback.onReadComplete(false, null, new KBException(KBErrorCode.CfgStateError, "Device was disconnected"));
+            }
+            return;
+        }
+
+        byte [] reqInfoMsg = new byte[2];
+        reqInfoMsg[0] = (byte)KBSensorMsgType.MsgReadSensorInfo;
+        reqInfoMsg[1] = (byte)sensorType;
+
+        sendHexMessage(reqInfoMsg,
+                ActionType.ACTION_SENSOR_READ_INFO,
+                callback);
+    }
+
+    //read device sensor record
+    public void readSensorRecord(int sensorType,
+                                 long nReadRcdNo,
+                                 int nReadOption,
+                                 int nMaxRecordNum,
+                                 final ReadSensorRspCallback readCallback)
+    {
+        if (state != KBConnState.Connected)
+        {
+            if (readCallback != null) {
+                readCallback.onReadComplete(false, null, new KBException(KBErrorCode.CfgStateError, "Device was disconnected"));
+            }
+            return;
+        }
+
+        byte[] byMakeReadSensorDataReq = mSensorRecordsMgr.makeReadSensorRecordRequest(sensorType,
+                nReadRcdNo,
+                nReadOption,
+                nMaxRecordNum);
+
+        sendHexMessage(byMakeReadSensorDataReq,
+                ActionType.ACTION_SENSOR_READ_RECORD,
+                readCallback);
+    }
+
+    public void clearSensorRecord(int sensorType,
+                                  final SensorCommandCallback readCallback)
+    {
+        byte [] byClearRequest = new byte[2];
+
+        if (state != KBConnState.Connected)
+        {
+            if (readCallback != null) {
+                readCallback.onCommandComplete(false, null, new KBException(KBErrorCode.CfgStateError, "Device was disconnected"));
+            }
+            return;
+        }
+
+        byClearRequest[0] = (byte)KBSensorMsgType.MsgClearSensorRecord;
+        byClearRequest[1] = (byte)sensorType;
+
+        sendHexMessage(byClearRequest,
+                ActionType.ACTION_SENSOR_COMMAND,
+                readCallback);
+    }
+
+    public void sendSensorRawMessage(byte []message, final SensorCommandCallback readCallback)
+    {
+        if (state != KBConnState.Connected)
+        {
+            if (readCallback != null) {
+                readCallback.onCommandComplete(false, null, new KBException(KBErrorCode.CfgStateError, "Device was disconnected"));
+            }
+            return;
+        }
+
+        sendHexMessage(message,
+                ActionType.ACTION_SENSOR_COMMAND,
+                readCallback);
     }
 }

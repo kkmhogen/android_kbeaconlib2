@@ -2,6 +2,9 @@ package com.kkmcn.kbeaconlib2.KBCfgPackage;
 
 import com.kkmcn.kbeaconlib2.KBException;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.HashMap;
 
 public class KBCfgAdvBase extends KBCfgBase{
@@ -130,57 +133,59 @@ public class KBCfgAdvBase extends KBCfgBase{
     }
 
 
-    public int updateConfig(HashMap<String, Object> dicts) {
+    public int updateConfig(JSONObject dicts) throws JSONException {
         int nUpdateParaNum = super.updateConfig(dicts);
 
-        Integer nTempValue = (Integer) dicts.get(JSON_FIELD_SLOT);
-        if (nTempValue != null) {
-            slotIndex = nTempValue;
+        if (dicts.has(JSON_FIELD_SLOT))
+        {
+            slotIndex = dicts.getInt(JSON_FIELD_SLOT);
             nUpdateParaNum++;
         }
 
-        nTempValue = (Integer) dicts.get(JSON_FIELD_TX_PWR);
-        if (nTempValue != null) {
-            txPower = nTempValue;
+        if (dicts.has(JSON_FIELD_TX_PWR))
+        {
+            txPower = dicts.getInt(JSON_FIELD_TX_PWR);
             nUpdateParaNum++;
         }
 
-        Float nTempFloat = parseFloat(dicts.get(JSON_FIELD_ADV_PERIOD));
-        if (nTempFloat != null) {
-            advPeriod = nTempFloat;
+        if (dicts.has(JSON_FIELD_ADV_PERIOD)) {
+            Float nTempFloat = parseFloat(dicts.get(JSON_FIELD_ADV_PERIOD));
+            if (nTempFloat != null) {
+                advPeriod = nTempFloat;
+                nUpdateParaNum++;
+            }
+        }
+
+        if (dicts.has(JSON_FIELD_BEACON_TYPE))
+        {
+            advType = dicts.getInt(JSON_FIELD_BEACON_TYPE);
             nUpdateParaNum++;
         }
 
-        nTempValue = (Integer) dicts.get(JSON_FIELD_BEACON_TYPE);
-        if (nTempValue != null) {
-            advType = nTempValue;
+        if (dicts.has(JSON_FIELD_ADV_CONNECTABLE))
+        {
+            advConnectable = dicts.getInt(JSON_FIELD_ADV_CONNECTABLE) > 0;
             nUpdateParaNum++;
         }
 
-        nTempValue = (Integer) dicts.get(JSON_FIELD_ADV_CONNECTABLE);
-        if (nTempValue != null) {
-            advConnectable = nTempValue > 0;
+        if (dicts.has(JSON_FIELD_ADV_MODE))
+        {
+            advMode = dicts.getInt(JSON_FIELD_ADV_MODE);
             nUpdateParaNum++;
         }
 
-        nTempValue = (Integer) dicts.get(JSON_FIELD_ADV_MODE);
-        if (nTempValue != null) {
-            advMode = nTempValue;
-            nUpdateParaNum++;
-        }
-
-        nTempValue = (Integer) dicts.get(JSON_FIELD_ADV_TRIGGER_ONLY);
-        if (nTempValue != null) {
-            advTriggerOnly = nTempValue > 0;
+        if (dicts.has(JSON_FIELD_ADV_TRIGGER_ONLY))
+        {
+            advTriggerOnly = dicts.getInt(JSON_FIELD_ADV_TRIGGER_ONLY) > 0;
             nUpdateParaNum++;
         }
 
         return nUpdateParaNum;
     }
 
-    public HashMap<String, Object> toDictionary()
+    public JSONObject toJSONObject() throws JSONException
     {
-        HashMap<String, Object> configDicts = super.toDictionary();
+        JSONObject configDicts = super.toJSONObject();
         if (slotIndex != null) {
             configDicts.put(JSON_FIELD_SLOT, slotIndex);
         }

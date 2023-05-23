@@ -1,6 +1,7 @@
 package com.kkmcn.kbeaconlib2.KBCfgPackage;
 
-import java.util.HashMap;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 public class KBCfgSensorLight extends KBCfgSensorBase{
     public static final String JSON_SENSOR_TYPE_LUX_LOG_ENABLE = "log";
@@ -65,38 +66,34 @@ public class KBCfgSensorLight extends KBCfgSensorBase{
         this.logChangeThreshold = lightChangeThreshold;
     }
 
-    public int updateConfig(HashMap<String,Object> dicts)
+    public int updateConfig(JSONObject dicts) throws JSONException
     {
         int nUpdateConfigNum = super.updateConfig(dicts);
-        Object obj;
 
-        obj = dicts.get(JSON_SENSOR_TYPE_LUX_LOG_ENABLE);
-        if (obj != null)
+        if (dicts.has(JSON_SENSOR_TYPE_LUX_LOG_ENABLE))
         {
-            logEnable = ((Integer) obj > 0);
+            logEnable = (dicts.getInt(JSON_SENSOR_TYPE_LUX_LOG_ENABLE) > 0);
             nUpdateConfigNum++;
         }
 
-        obj = dicts.get(JSON_SENSOR_TYPE_LUX_MEASURE_INTERVAL);
-        if (obj != null)
+        if (dicts.has(JSON_SENSOR_TYPE_LUX_MEASURE_INTERVAL))
         {
-            measureInterval = (Integer) obj;
+            measureInterval = dicts.getInt(JSON_SENSOR_TYPE_LUX_MEASURE_INTERVAL);
             nUpdateConfigNum++;
         }
 
-        obj = dicts.get(JSON_SENSOR_TYPE_LUX_CHANGE_THD);
-        if (obj != null)
+        if (dicts.has(JSON_SENSOR_TYPE_LUX_CHANGE_THD))
         {
-            logChangeThreshold = (Integer) obj;
+            logChangeThreshold = dicts.getInt(JSON_SENSOR_TYPE_LUX_CHANGE_THD);
             nUpdateConfigNum++;
         }
 
         return nUpdateConfigNum;
     }
 
-    public HashMap<String, Object> toDictionary()
+    public JSONObject toJSONObject() throws JSONException
     {
-        HashMap<String, Object> configDicts = super.toDictionary();
+        JSONObject configDicts = super.toJSONObject();
 
         if (logEnable != null)
         {

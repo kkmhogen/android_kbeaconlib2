@@ -4,6 +4,9 @@ import com.kkmcn.kbeaconlib2.KBAdvPackage.KBAdvType;
 import com.kkmcn.kbeaconlib2.KBException;
 import com.kkmcn.kbeaconlib2.KBUtility;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.HashMap;
 
 public class KBCfgAdvIBeacon extends KBCfgAdvBase{
@@ -84,37 +87,34 @@ public class KBCfgAdvIBeacon extends KBCfgAdvBase{
         }
     }
 
-    public int updateConfig(HashMap<String, Object> dicts)
+    public int updateConfig(JSONObject dicts) throws JSONException
     {
         int nUpdateParaNum = super.updateConfig(dicts);
 
-        String strTempValue = (String)dicts.get(JSON_FIELD_IBEACON_UUID);
-        if (strTempValue != null)
+        if (dicts.has(JSON_FIELD_IBEACON_UUID))
         {
-            uuid = strTempValue;
+            uuid = (String)dicts.get(JSON_FIELD_IBEACON_UUID);
             nUpdateParaNum++;
         }
 
-        Integer nTempValue = (Integer)dicts.get(JSON_FIELD_IBEACON_MAJORID);
-        if (nTempValue != null)
+        if (dicts.has(JSON_FIELD_IBEACON_MAJORID))
         {
-            majorID = nTempValue;
+            majorID = (Integer)dicts.get(JSON_FIELD_IBEACON_MAJORID);
             nUpdateParaNum++;
         }
 
-        nTempValue = (Integer)dicts.get(JSON_FIELD_IBEACON_MINORID);
-        if (nTempValue != null)
+        if (dicts.has(JSON_FIELD_IBEACON_MINORID))
         {
-            minorID = nTempValue;
+            minorID = (Integer)dicts.get(JSON_FIELD_IBEACON_MINORID);
             nUpdateParaNum++;
         }
 
         return nUpdateParaNum;
     }
 
-    public HashMap<String, Object> toDictionary()
+    public JSONObject toJSONObject() throws JSONException
     {
-        HashMap<String, Object>cfgDicts = super.toDictionary();
+        JSONObject cfgDicts = super.toJSONObject();
 
         if (uuid != null)
         {
