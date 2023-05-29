@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 
-public class KBSensorDataHandler extends Object {
+public class KBRecordDataHandler extends Object {
 
 
     public long mUtcOffset;
@@ -19,19 +19,19 @@ public class KBSensorDataHandler extends Object {
     //object creation factory
     private final static HashMap<String, Class> kbSensorParserObjects;
 
-    public KBSensorDataHandler()
+    public KBRecordDataHandler()
     {
         mUtcOffset = 0;
     }
 
     static {
         kbSensorParserObjects = new HashMap<>(5);
-        kbSensorParserObjects.put(String.valueOf(KBSensorType.VOC), KBVOCRecord.class);
-        kbSensorParserObjects.put(String.valueOf(KBSensorType.CO2), KBCO2Record.class);
-        kbSensorParserObjects.put(String.valueOf(KBSensorType.PIR), KBPIRRecord.class);
-        kbSensorParserObjects.put(String.valueOf(KBSensorType.HTHumidity), KBHumidityRecord.class);
-        kbSensorParserObjects.put(String.valueOf(KBSensorType.Cutoff), KBCutoffRecord.class);
-        kbSensorParserObjects.put(String.valueOf(KBSensorType.Light), KBLightRecord.class);
+        kbSensorParserObjects.put(String.valueOf(KBSensorType.VOC), KBRecordVOC.class);
+        kbSensorParserObjects.put(String.valueOf(KBSensorType.CO2), KBRecordCO2.class);
+        kbSensorParserObjects.put(String.valueOf(KBSensorType.PIR), KBRecordPIR.class);
+        kbSensorParserObjects.put(String.valueOf(KBSensorType.HTHumidity), KBRecordHumidity.class);
+        kbSensorParserObjects.put(String.valueOf(KBSensorType.Cutoff), KBRecordCutoff.class);
+        kbSensorParserObjects.put(String.valueOf(KBSensorType.Light), KBRecordLight.class);
     }
 
     public byte[] makeReadSensorRecordRequest(int sensorType, long nReadRcdNo, int nReadOrder, int nMaxRecordNum)
@@ -101,7 +101,7 @@ public class KBSensorDataHandler extends Object {
             return null;
         }
 
-        KBSensorReadInfoRsp infoRsp = new KBSensorReadInfoRsp();
+        KBRecordInfoRsp infoRsp = new KBRecordInfoRsp();
 
         infoRsp.sensorType = (int)sensorDataRsp[nDataPtr];
         nDataPtr++;
@@ -139,7 +139,7 @@ public class KBSensorDataHandler extends Object {
         }
 
         //next read data pos
-        KBSensorReadRecordRsp readDataRsp = new KBSensorReadRecordRsp();
+        KBRecordDataRsp readDataRsp = new KBRecordDataRsp();
         readDataRsp.sensorType = nSensorType;
         readDataRsp.readDataNextPos = ByteConvert.bytesTo4Long(sensorDataRsp, nReadIndex);
         nReadIndex += 4;

@@ -1,6 +1,6 @@
 package com.kkmcn.kbeaconlib2.KBSensorHistoryData;
 
-public class KBSensorReadInfoRsp extends Object
+public class KBRecordInfoRsp extends Object
 {
     public Integer sensorType;
 

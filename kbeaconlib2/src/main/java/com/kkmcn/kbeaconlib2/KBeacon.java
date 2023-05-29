@@ -33,10 +33,10 @@ import com.kkmcn.kbeaconlib2.KBCfgPackage.KBCfgSensorBase;
 import com.kkmcn.kbeaconlib2.KBCfgPackage.KBCfgTrigger;
 import com.kkmcn.kbeaconlib2.KBCfgPackage.KBCfgType;
 import com.kkmcn.kbeaconlib2.KBCfgPackage.KBTriggerType;
-import com.kkmcn.kbeaconlib2.KBSensorHistoryData.KBSensorDataHandler;
+import com.kkmcn.kbeaconlib2.KBSensorHistoryData.KBRecordDataHandler;
 import com.kkmcn.kbeaconlib2.KBSensorHistoryData.KBSensorMsgType;
-import com.kkmcn.kbeaconlib2.KBSensorHistoryData.KBSensorReadInfoRsp;
-import com.kkmcn.kbeaconlib2.KBSensorHistoryData.KBSensorReadRecordRsp;
+import com.kkmcn.kbeaconlib2.KBSensorHistoryData.KBRecordInfoRsp;
+import com.kkmcn.kbeaconlib2.KBSensorHistoryData.KBRecordDataRsp;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -119,7 +119,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
 
     private int mCloseReason;
     private KBAdvPacketHandler mAdvPacketMgr;
-    private KBSensorDataHandler mSensorRecordsMgr;
+    private KBRecordDataHandler mSensorRecordsMgr;
     private KBCfgHandler mCfgMgr;
     private String mPassword;
     private BluetoothDevice mBleDevice;
@@ -193,11 +193,11 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
     }
 
     public interface ReadSensorInfoCallback {
-        void onReadComplete(boolean bReadResult, KBSensorReadInfoRsp readPara, KBException error);
+        void onReadComplete(boolean bReadResult, KBRecordInfoRsp readPara, KBException error);
     }
 
     public interface ReadSensorRspCallback {
-        void onReadComplete(boolean bReadResult, KBSensorReadRecordRsp readPara, KBException error);
+        void onReadComplete(boolean bReadResult, KBRecordDataRsp readPara, KBException error);
     }
 
     public interface SensorCommandCallback {
@@ -209,7 +209,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         mac = strMacAddress;
         state = KBConnState.Disconnected;
         mAdvPacketMgr = new KBAdvPacketHandler();
-        mSensorRecordsMgr = new KBSensorDataHandler();
+        mSensorRecordsMgr = new KBRecordDataHandler();
         mCfgMgr = new KBCfgHandler();
         mContext = ctx;
         mGattCallback = new KBeaconGattCallback();
@@ -240,7 +240,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         return mac;
     }
 
-    public KBSensorDataHandler getSensorRecordsMgr()
+    public KBRecordDataHandler getSensorRecordsMgr()
     {
         return mSensorRecordsMgr;
     }
@@ -608,7 +608,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         return notifyData2ClassMap.get(triggerType) != null;
     }
 
-    //remove subscribed trigger notificaiton
+    //remove subscribed trigger notification
     public void removeSubscribeSensorDataNotify(Integer nTriggerType, ActionCallback callback)
     {
         try {
@@ -1274,12 +1274,12 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
     {
         short nReqDataSeq = KBUtility.htonshort(data[0], data[1]);
         short nAckCause = KBUtility.htonshort(data[4], data[5]);
+        //Log.v(LOG_TAG, "Receive device ack:" + nAckCause + ",seq:" + nReqDataSeq);
+
         if (mActionList.size() == 0){
             Log.e(LOG_TAG, "action state error");
             return;
         }
-
-        Log.v(LOG_TAG, "Receive device ack:" + nAckCause + ",seq:" + nReqDataSeq);
 
         if (nAckCause == BEACON_ACK_CAUSE_CMD_RCV)  //beacon has received the command, now start execute
         {
@@ -1527,14 +1527,14 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         ActionCommand action = this.cancelActionTimer();
 
         if (action.actionType == ActionType.ACTION_SENSOR_READ_INFO) {
-            KBSensorReadInfoRsp readRsp = null;
+            KBRecordInfoRsp readRsp = null;
             boolean readSuccess = true;
             KBException exception = null;
 
             if (action.receiveDataLen > 0) {
                 byte[] validData = new byte[action.receiveDataLen];
                 System.arraycopy(action.receiveData, 0, validData, 0, action.receiveDataLen);
-                readRsp = (KBSensorReadInfoRsp)mSensorRecordsMgr.parseSensorResponse(validData);
+                readRsp = (KBRecordInfoRsp)mSensorRecordsMgr.parseSensorResponse(validData);
             }
 
             if (readRsp == null) {
@@ -1546,13 +1546,13 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
             }
         }
         else if (action.actionType == ActionType.ACTION_SENSOR_READ_RECORD) {
-            KBSensorReadRecordRsp readRsp = null;
+            KBRecordDataRsp readRsp = null;
             boolean readSuccess = true;
             KBException exception = null;
             if (action.receiveDataLen > 0) {
                 byte[] validData = new byte[action.receiveDataLen];
                 System.arraycopy(action.receiveData, 0, validData, 0, action.receiveDataLen);
-                readRsp = (KBSensorReadRecordRsp)mSensorRecordsMgr.parseSensorResponse(validData);
+                readRsp = (KBRecordDataRsp)mSensorRecordsMgr.parseSensorResponse(validData);
             }
 
             if (readRsp == null) {

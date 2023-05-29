@@ -32,16 +32,15 @@ import com.kkmcn.kbeaconlib2.KBCfgPackage.KBTriggerAction;
 import com.kkmcn.kbeaconlib2.KBCfgPackage.KBTriggerAdvChgMode;
 import com.kkmcn.kbeaconlib2.KBCfgPackage.KBTriggerType;
 import com.kkmcn.kbeaconlib2.KBConnState;
-import com.kkmcn.kbeaconlib2.KBSensorHistoryData.KBCutoffRecord;
-import com.kkmcn.kbeaconlib2.KBSensorHistoryData.KBHumidityRecord;
-import com.kkmcn.kbeaconlib2.KBSensorHistoryData.KBLightRecord;
-import com.kkmcn.kbeaconlib2.KBSensorHistoryData.KBPIRRecord;
 import com.kkmcn.kbeaconlib2.KBSensorHistoryData.KBRecordBase;
-import com.kkmcn.kbeaconlib2.KBSensorHistoryData.KBSensorReadInfoRsp;
+import com.kkmcn.kbeaconlib2.KBSensorHistoryData.KBRecordCutoff;
+import com.kkmcn.kbeaconlib2.KBSensorHistoryData.KBRecordDataRsp;
+import com.kkmcn.kbeaconlib2.KBSensorHistoryData.KBRecordHumidity;
+import com.kkmcn.kbeaconlib2.KBSensorHistoryData.KBRecordInfoRsp;
+import com.kkmcn.kbeaconlib2.KBSensorHistoryData.KBRecordLight;
+import com.kkmcn.kbeaconlib2.KBSensorHistoryData.KBRecordPIR;
 import com.kkmcn.kbeaconlib2.KBSensorHistoryData.KBSensorReadOption;
-import com.kkmcn.kbeaconlib2.KBSensorHistoryData.KBSensorReadRecordRsp;
 import com.kkmcn.kbeaconlib2.KBUtility;
-import com.kkmcn.kbeaconlib2.UTCTime;
 import com.kkmcn.sensordemo.dfulibrary.KBeaconDFUActivity;
 import com.kkmcn.sensordemo.recordhistory.CfgHTBeaconHistoryActivity;
 import com.kkmcn.kbeaconlib2.KBCfgPackage.KBCfgBase;
@@ -1105,22 +1104,22 @@ public class DevicePannelActivity extends AppBaseActivity implements View.OnClic
     public void readLightHistoryRecordExample()
     {
         mBeacon.readSensorRecord(KBSensorType.Light,
-                KBSensorReadRecordRsp.INVALID_DATA_RECORD_POS, //set to INVALID_DATA_RECORD_POS
+                KBRecordDataRsp.INVALID_DATA_RECORD_POS, //set to INVALID_DATA_RECORD_POS
                 KBSensorReadOption.NewRecord,  //read direction type
                 100,   //number of records the app want to read
                 new KBeacon.ReadSensorRspCallback()
                 {
                     @Override
-                    public void onReadComplete(boolean bConfigSuccess,  KBSensorReadRecordRsp dataRsp, KBException error) {
+                    public void onReadComplete(boolean bConfigSuccess,  KBRecordDataRsp dataRsp, KBException error) {
                         if (bConfigSuccess)
                         {
                             for (KBRecordBase sensorRecord: dataRsp.readDataRspList)
                             {
-                                KBLightRecord record = (KBLightRecord)sensorRecord;
+                                KBRecordLight record = (KBRecordLight)sensorRecord;
                                 Log.v(LOG_TAG, "Light utc time:" + record.utcTime);
                                 Log.v(LOG_TAG, "Light level:" + record.lightLevel);
                             }
-                            if (dataRsp.readDataNextPos == KBSensorReadRecordRsp.INVALID_DATA_RECORD_POS)
+                            if (dataRsp.readDataNextPos == KBRecordDataRsp.INVALID_DATA_RECORD_POS)
                             {
                                 Log.v(LOG_TAG, "Read data complete");
                             }
@@ -1261,7 +1260,7 @@ public class DevicePannelActivity extends AppBaseActivity implements View.OnClic
     {
         mBeacon.readSensorDataInfo(KBSensorType.Cutoff, new KBeacon.ReadSensorInfoCallback() {
             @Override
-            public void onReadComplete(boolean b, KBSensorReadInfoRsp infRsp, KBException e) {
+            public void onReadComplete(boolean b, KBRecordInfoRsp infRsp, KBException e) {
                 if (b){
                     Log.v(LOG_TAG, "Total records:" + infRsp.totalRecordNumber);
                     Log.v(LOG_TAG, "Unread records:" + infRsp.unreadRecordNumber);
@@ -1273,51 +1272,119 @@ public class DevicePannelActivity extends AppBaseActivity implements View.OnClic
     public void readTempHistoryRecordExample()
     {
         mBeacon.readSensorRecord(KBSensorType.HTHumidity,
-            KBSensorReadRecordRsp.INVALID_DATA_RECORD_POS, //set to INVALID_DATA_RECORD_POS
+            KBRecordDataRsp.INVALID_DATA_RECORD_POS, //set to INVALID_DATA_RECORD_POS
             KBSensorReadOption.NewRecord,  //read direction type
             100,   //number of records the app want to read
-            new KBeacon.ReadSensorRspCallback()
-            {
-                @Override
-                public void onReadComplete(boolean bSuccess,  KBSensorReadRecordRsp dataRsp, KBException error) {
+                (bSuccess, dataRsp, error) -> {
                     if (bSuccess)
                     {
                         for (KBRecordBase sensorRecord: dataRsp.readDataRspList)
                         {
-                            KBHumidityRecord record = (KBHumidityRecord)sensorRecord;
+                            KBRecordHumidity record = (KBRecordHumidity)sensorRecord;
                             Log.v(LOG_TAG, "record utc time:" + record.utcTime);
                             Log.v(LOG_TAG, "record temperature:" + record.temperature);
                             Log.v(LOG_TAG, "record humidity:" + record.humidity);
                         }
-                        if (dataRsp.readDataNextPos == KBSensorReadRecordRsp.INVALID_DATA_RECORD_POS)
+                        if (dataRsp.readDataNextPos == KBRecordDataRsp.INVALID_DATA_RECORD_POS)
                         {
                             Log.v(LOG_TAG, "Read data complete");
                         }
                     }
-                }
-            });
+                });
+    }
+
+    //reverse read record example
+    private long mNextReadReverseIndex = KBRecordDataRsp.INVALID_DATA_RECORD_POS;
+    private int mTotalReverseReadIndex = 0;
+    public void readTempHistoryRecordReverseExample()
+    {
+        mBeacon.readSensorRecord(KBSensorType.HTHumidity,
+                mNextReadReverseIndex, //read from last pos
+                KBSensorReadOption.ReverseOrder,  //read direction type
+                50,   //number of records the app want to read
+                (bSuccess, dataRsp, error) -> {
+                    if (bSuccess)
+                    {
+                        mNextReadReverseIndex = dataRsp.readDataNextPos;
+                        for (KBRecordBase sensorRecord: dataRsp.readDataRspList)
+                        {
+                            KBRecordHumidity record = (KBRecordHumidity)sensorRecord;
+                            Log.v(LOG_TAG, mTotalReverseReadIndex
+                                    +": utc time:" + record.utcTime
+                                    + ",temperature:" + record.temperature
+                                    + ",humidity:" + record.humidity);
+                            mTotalReverseReadIndex++;
+                        }
+                        if (dataRsp.readDataNextPos == KBRecordDataRsp.INVALID_DATA_RECORD_POS)
+                        {
+                            Log.v(LOG_TAG, "Read data complete");
+                        }
+                        else
+                        {
+                            Log.v(LOG_TAG, "next read position:" + dataRsp.readDataNextPos);
+                        }
+                    }
+                });
+    }
+
+    //reverse read record example
+    private long mNextReadNormalIndex = 10;
+    private int mTotalReadNormalIndex = 0;
+    public void readTempHistoryRecordNormalExample()
+    {
+        mBeacon.readSensorRecord(KBSensorType.HTHumidity,
+                mNextReadNormalIndex, //read from last pos
+                KBSensorReadOption.NormalOrder,  //read direction type
+                10,   //number of records the app want to read
+                (bSuccess, dataRsp, error) -> {
+                    if (bSuccess)
+                    {
+                        mNextReadNormalIndex = dataRsp.readDataNextPos;
+                        for (KBRecordBase sensorRecord: dataRsp.readDataRspList)
+                        {
+                            KBRecordHumidity record = (KBRecordHumidity)sensorRecord;
+                            Log.v(LOG_TAG, mTotalReadNormalIndex
+                                    +": utc time:" + record.utcTime
+                                    + ",temperature:" + record.temperature
+                                    + ",humidity:" + record.humidity);
+                            mTotalReadNormalIndex++;
+                        }
+                        if (dataRsp.readDataNextPos == KBRecordDataRsp.INVALID_DATA_RECORD_POS)
+                        {
+                            Log.v(LOG_TAG, "Read data complete");
+                        }
+                        else
+                        {
+                            Log.v(LOG_TAG, "next read position:" + dataRsp.readDataNextPos);
+                        }
+                    }
+                    else
+                    {
+                        Log.e(LOG_TAG, "read data failed:" + error.errorCode);
+                    }
+                });
     }
 
     //read door open/close history records
     public void readCutoffHistoryRecordExample()
     {
         mBeacon.readSensorRecord(KBSensorType.Cutoff,
-                KBSensorReadRecordRsp.INVALID_DATA_RECORD_POS, //set to INVALID_DATA_RECORD_POS
+                KBRecordDataRsp.INVALID_DATA_RECORD_POS, //set to INVALID_DATA_RECORD_POS
                 KBSensorReadOption.NewRecord,  //read direction type
                 100,   //number of records the app want to read
                 new KBeacon.ReadSensorRspCallback()
                 {
                     @Override
-                    public void onReadComplete(boolean bSuccess,  KBSensorReadRecordRsp dataRsp, KBException error) {
+                    public void onReadComplete(boolean bSuccess,  KBRecordDataRsp dataRsp, KBException error) {
                         if (bSuccess)
                         {
                             for (KBRecordBase sensorRecord: dataRsp.readDataRspList)
                             {
-                                KBCutoffRecord record = (KBCutoffRecord)sensorRecord;
+                                KBRecordCutoff record = (KBRecordCutoff)sensorRecord;
                                 Log.v(LOG_TAG, "record utc time:" + record.utcTime);
                                 Log.v(LOG_TAG, "record cut off Flag:" + record.cutoffFlag);
                             }
-                            if (dataRsp.readDataNextPos == KBSensorReadRecordRsp.INVALID_DATA_RECORD_POS)
+                            if (dataRsp.readDataNextPos == KBRecordDataRsp.INVALID_DATA_RECORD_POS)
                             {
                                 Log.v(LOG_TAG, "Read data complete");
                             }
@@ -1330,22 +1397,22 @@ public class DevicePannelActivity extends AppBaseActivity implements View.OnClic
     public void readPIRHistoryRecordExample()
     {
         mBeacon.readSensorRecord(KBSensorType.PIR,
-                KBSensorReadRecordRsp.INVALID_DATA_RECORD_POS, //set to INVALID_DATA_RECORD_POS
+                KBRecordDataRsp.INVALID_DATA_RECORD_POS, //set to INVALID_DATA_RECORD_POS
                 KBSensorReadOption.NewRecord,  //read direction type
                 100,   //number of records the app want to read
                 new KBeacon.ReadSensorRspCallback()
                 {
                     @Override
-                    public void onReadComplete(boolean bSuccess,  KBSensorReadRecordRsp dataRsp, KBException error) {
+                    public void onReadComplete(boolean bSuccess,  KBRecordDataRsp dataRsp, KBException error) {
                         if (bSuccess)
                         {
                             for (KBRecordBase sensorRecord: dataRsp.readDataRspList)
                             {
-                                KBPIRRecord record = (KBPIRRecord)sensorRecord;
+                                KBRecordPIR record = (KBRecordPIR)sensorRecord;
                                 Log.v(LOG_TAG, "record utc time:" + record.utcTime);
                                 Log.v(LOG_TAG, "record pir indication:" + record.pirIndication);
                             }
-                            if (dataRsp.readDataNextPos == KBSensorReadRecordRsp.INVALID_DATA_RECORD_POS)
+                            if (dataRsp.readDataNextPos == KBRecordDataRsp.INVALID_DATA_RECORD_POS)
                             {
                                 Log.v(LOG_TAG, "Read data complete");
                             }

@@ -2,26 +2,23 @@ package com.kkmcn.kbeaconlib2.KBSensorHistoryData;
 
 import com.kkmcn.kbeaconlib2.ByteConvert;
 import com.kkmcn.kbeaconlib2.KBCfgPackage.KBSensorType;
-import com.kkmcn.kbeaconlib2.KBUtility;
 
-public class KBHumidityRecord extends KBRecordBase {
+public class KBRecordCutoff extends KBRecordBase {
     public long utcTime;
 
-    public float temperature;
+    public byte cutoffFlag;   // bit 0: is cutoff enable, bit 1: is device was unplug
 
-    public float humidity;
-
-    public static int HT_RECORD_LEN = 8;
+    public static int CUT_OFF_RECORD_LEN = 5;
 
     @Override
     public int getRecordLen() {
-        return HT_RECORD_LEN;
+        return CUT_OFF_RECORD_LEN;
     }
 
     @Override
     public int getSenorType()
     {
-        return KBSensorType.HTHumidity;
+        return KBSensorType.Cutoff;
     }
 
     @Override
@@ -36,12 +33,8 @@ public class KBHumidityRecord extends KBRecordBase {
         }
         nRecordPtr += 4;
 
-        temperature = KBUtility.signedBytes2Float(sensorDataRsp[nRecordPtr], sensorDataRsp[nRecordPtr+1]);
-        nRecordPtr += 2;
-
-        humidity = KBUtility.signedBytes2Float(sensorDataRsp[nRecordPtr], sensorDataRsp[nRecordPtr+1]);
-        nRecordPtr += 2;
-
+        cutoffFlag = sensorDataRsp[nRecordPtr];
+        nRecordPtr += 1;
 
         return true;
     }

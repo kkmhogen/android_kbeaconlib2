@@ -3,22 +3,24 @@ package com.kkmcn.kbeaconlib2.KBSensorHistoryData;
 import com.kkmcn.kbeaconlib2.ByteConvert;
 import com.kkmcn.kbeaconlib2.KBCfgPackage.KBSensorType;
 
-public class KBCutoffRecord extends KBRecordBase {
+public class KBRecordVOC extends KBRecordBase {
     public long utcTime;
 
-    public byte cutoffFlag;   // bit 0: is cutoff enable, bit 1: is device was unplug
+    public short vocIndex;
+    
+    public short noxIndex;
 
-    public static int CUT_OFF_RECORD_LEN = 5;
+    public static int VOC_RECORD_LEN = 8;
 
     @Override
     public int getRecordLen() {
-        return CUT_OFF_RECORD_LEN;
+        return VOC_RECORD_LEN;
     }
 
     @Override
     public int getSenorType()
     {
-        return KBSensorType.Cutoff;
+        return KBSensorType.VOC;
     }
 
     @Override
@@ -33,8 +35,11 @@ public class KBCutoffRecord extends KBRecordBase {
         }
         nRecordPtr += 4;
 
-        cutoffFlag = sensorDataRsp[nRecordPtr];
-        nRecordPtr += 1;
+        vocIndex = (short)((sensorDataRsp[nRecordPtr++] & 0xFF) << 8);
+        vocIndex += (short)(sensorDataRsp[nRecordPtr++] & 0xFF);
+
+        noxIndex = (short)((sensorDataRsp[nRecordPtr++] & 0xFF) << 8);
+        noxIndex += (short)(sensorDataRsp[nRecordPtr++] & 0xFF);
 
         return true;
     }

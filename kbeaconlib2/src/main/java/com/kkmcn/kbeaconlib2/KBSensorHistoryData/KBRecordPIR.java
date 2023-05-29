@@ -2,28 +2,24 @@ package com.kkmcn.kbeaconlib2.KBSensorHistoryData;
 
 import com.kkmcn.kbeaconlib2.ByteConvert;
 import com.kkmcn.kbeaconlib2.KBCfgPackage.KBSensorType;
-import com.kkmcn.kbeaconlib2.KBUtility;
 
-public class KBCO2Record extends KBRecordBase {
+public class KBRecordPIR extends KBRecordBase {
     public long utcTime;
 
-    public short CO2;
+    public byte pirIndication;   // bit 0: is PIR alert
 
-    public float temperature;
+    public static int PIR_RECORD_LEN = 5;
 
-    public float humidity;
-
-    public static int CO2_RECORD_LEN = 10;
 
     @Override
     public int getRecordLen() {
-        return CO2_RECORD_LEN;
+        return PIR_RECORD_LEN;
     }
 
     @Override
     public int getSenorType()
     {
-        return KBSensorType.CO2;
+        return KBSensorType.Light;
     }
 
     @Override
@@ -38,14 +34,8 @@ public class KBCO2Record extends KBRecordBase {
         }
         nRecordPtr += 4;
 
-        CO2 = (short)((sensorDataRsp[nRecordPtr++] & 0xFF) << 8);
-        CO2 += (short)(sensorDataRsp[nRecordPtr++] & 0xFF);
-
-        temperature = KBUtility.signedBytes2Float(sensorDataRsp[nRecordPtr], sensorDataRsp[nRecordPtr+1]);
-        nRecordPtr += 2;
-
-        humidity = KBUtility.signedBytes2Float(sensorDataRsp[nRecordPtr], sensorDataRsp[nRecordPtr+1]);
-        nRecordPtr += 2;
+        pirIndication = sensorDataRsp[nRecordPtr];
+        nRecordPtr += 1;
 
         return true;
     }

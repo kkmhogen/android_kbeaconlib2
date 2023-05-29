@@ -3,7 +3,7 @@ package com.kkmcn.kbeaconlib2.KBSensorHistoryData;
 import com.kkmcn.kbeaconlib2.ByteConvert;
 import com.kkmcn.kbeaconlib2.KBCfgPackage.KBSensorType;
 
-public class KBLightRecord extends KBRecordBase {
+public class KBRecordLight extends KBRecordBase {
     public long utcTime;
 
     public byte lightType;   // 0: pir , 0x1: light record
