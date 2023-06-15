@@ -220,20 +220,14 @@ public class KBUtility {
 
     public static float signedBytes2Float(byte byHeight, byte byLow)
     {
-        float nTempPointLeft = byHeight;
-        int nTempPointRight = (byLow & 0xFF);
-        float fTempPointRight = ((float)nTempPointRight) / 256;
-        float result;
-        if (nTempPointLeft < 0)
+        int combine = ((byHeight & 0xFF) << 8) + (byLow & 0xFF);
+        if (combine >= 0x8000)
         {
-            result = nTempPointLeft - fTempPointRight;
-        }
-        else
-        {
-            result = nTempPointLeft + fTempPointRight;
+            combine = combine - 0x10000;
         }
 
-        BigDecimal bigTemp = new BigDecimal(result);
+        float fResult = (float)(combine / 256.0);
+        BigDecimal bigTemp = new BigDecimal(fResult);
         return bigTemp.setScale(2,   BigDecimal.ROUND_HALF_UP).floatValue();
     }
 }

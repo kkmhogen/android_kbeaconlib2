@@ -17,8 +17,6 @@ import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
 
-import androidx.core.app.ActivityCompat;
-
 import com.kkmcn.kbeaconlib2.KBAdvPackage.KBAdvPacketBase;
 import com.kkmcn.kbeaconlib2.KBAdvPackage.KBAdvPacketHandler;
 import com.kkmcn.kbeaconlib2.KBAdvPackage.KBAdvType;
@@ -223,7 +221,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         mAdvPacketMgr.setAdvTypeFilter(nAdvTypeFilter);
     }
 
-    void attach2Device(BluetoothDevice bleDevice, KBeaconsMgr beaconMgr)
+    public void attach2Device(BluetoothDevice bleDevice, KBeaconsMgr beaconMgr)
     {
         mBleDevice = bleDevice;
     }
@@ -374,12 +372,6 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         if (state == KBConnState.Disconnected && password.length() <= 16 && password.length() >= 8)
         {
             delegate = connectCallback;
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                if (ActivityCompat.checkSelfPermission(mContext, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-                    return false;
-                }
-            }
             mGattConnection = mBleDevice.connectGatt(mContext, false, mGattCallback);
             Log.v(LOG_TAG, "start connect to device " + mac);
 

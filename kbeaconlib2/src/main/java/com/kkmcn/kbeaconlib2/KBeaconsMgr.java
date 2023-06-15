@@ -1,6 +1,7 @@
 package com.kkmcn.kbeaconlib2;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -20,9 +21,6 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
-
-import androidx.core.app.ActivityCompat;
-
 import com.kkmcn.kbeaconlib2.KBAdvPackage.KBAdvType;
 
 import java.util.ArrayList;
@@ -306,6 +304,7 @@ public class KBeaconsMgr {
         return mCbKBeacons.get(strMacAddress);
     }
 
+    @SuppressLint("MissingPermission")
     public int startScanning()
     {
         if (!mBluetoothAdapter.isEnabled())
@@ -319,11 +318,6 @@ public class KBeaconsMgr {
 
             if (mIsScanning) {
                 Log.e(TAG, "current is scan, now start scan again");
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    if (ActivityCompat.checkSelfPermission(mContext, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
-                        return SCAN_ERROR_NO_PERMISSION;
-                    }
-                }
                 scaner.stopScan(mNPhoneCallback);
                 mIsScanning = false;
             }
@@ -347,11 +341,6 @@ public class KBeaconsMgr {
             filterList.add(filter3.build());
             filterList.add(filter4.build());
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                if (ActivityCompat.checkSelfPermission(mContext, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
-                    return SCAN_ERROR_NO_PERMISSION;
-                }
-            }
             scaner.startScan(filterList, scanSetting.build(), mNPhoneCallback);
             mLastScanTick = System.currentTimeMillis();
             mIsScanning = true;
@@ -371,16 +360,12 @@ public class KBeaconsMgr {
         return mIsScanning;
     }
 
+    @SuppressLint("MissingPermission")
     public void stopScanning()
     {
         BluetoothLeScanner scaner = mBluetoothAdapter.getBluetoothLeScanner();
         if (mIsScanning) {
             Log.e(TAG, "current is scan, now stop scanning");
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                if (ActivityCompat.checkSelfPermission(mContext, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
-                    return;
-                }
-            }
             scaner.stopScan(mNPhoneCallback);
             mIsScanning = false;
         }
@@ -454,12 +439,7 @@ public class KBeaconsMgr {
         boolean bFilter = true;
         boolean bNameFilterEnable = true, bMacFilterEnable = true;
         if (scanNameFilter != null && scanNameFilter.length() >= 1) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                if (ActivityCompat.checkSelfPermission(mContext, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-                    return;
-                }
-            }
-            String strDevName = rslt.getDevice().getName();
+            @SuppressLint("MissingPermission") String strDevName = rslt.getDevice().getName();
             if (strDevName != null){
                 if (nameFilterIgnoreCase)
                 {
