@@ -11,9 +11,10 @@ public class KBCfgAdvKSensor extends KBCfgAdvBase{
     public static final String JSON_FIELD_SENSOR_HUMIDITY = "ht";
     public static final String JSON_FIELD_SENSOR_AXIS= "axis";
     public static final String JSON_FIELD_SENSOR_LUX = "lux";
-    public static final String JSON_FIELD_SENSOR_PIR= "pir";
-    public static final String JSON_FIELD_SENSOR_VOC= "voc";
-    public static final String JSON_FIELD_SENSOR_CO2= "co2";
+    public static final String JSON_FIELD_SENSOR_PIR = "pir";
+    public static final String JSON_FIELD_SENSOR_VOC = "voc";
+    public static final String JSON_FIELD_SENSOR_CO2 = "co2";
+    public static final String JSON_FIELD_RECORD_COUNT = "rcd";
 
     private Boolean htSensorInclude;
     private Boolean axisSensorInclude;
@@ -21,6 +22,7 @@ public class KBCfgAdvKSensor extends KBCfgAdvBase{
     private Boolean pirSensorInclude;
     private Boolean vocSensorInclude;
     private Boolean co2SensorInclude;
+    private Boolean recordInclude;
 
     public KBCfgAdvKSensor()
     {
@@ -76,6 +78,14 @@ public class KBCfgAdvKSensor extends KBCfgAdvBase{
         return co2SensorInclude;
     }
 
+    public void setRecordInclude(Boolean recordInclude) {
+        this.recordInclude = recordInclude;
+    }
+
+    public Boolean isRecordInclude(){
+        return recordInclude;
+    }
+
     public int updateConfig(JSONObject dicts) throws JSONException
     {
         int nUpdateConfigNum = super.updateConfig(dicts);
@@ -116,6 +126,12 @@ public class KBCfgAdvKSensor extends KBCfgAdvBase{
             nUpdateConfigNum++;
         }
 
+        if (dicts.has(JSON_FIELD_RECORD_COUNT))
+        {
+            recordInclude = (dicts.getInt(JSON_FIELD_RECORD_COUNT) > 0);
+            nUpdateConfigNum++;
+        }
+
         return nUpdateConfigNum;
     }
 
@@ -151,6 +167,11 @@ public class KBCfgAdvKSensor extends KBCfgAdvBase{
         if (co2SensorInclude != null)
         {
             configDicts.put(JSON_FIELD_SENSOR_CO2, co2SensorInclude ? 1: 0);
+        }
+
+        if (recordInclude != null)
+        {
+            configDicts.put(JSON_FIELD_RECORD_COUNT, recordInclude ? 1: 0);
         }
 
         return configDicts;

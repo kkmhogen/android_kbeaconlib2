@@ -15,6 +15,7 @@ public class KBAdvPacketSensor extends KBAdvPacketBase{
     private final  static int SENSOR_MASK_LUX = 0x40;
     private final  static int SENSOR_MASK_VOC = 0x80;
     private final  static int SENSOR_MASK_CO2 = 0x200;
+    private final  static int SENSOR_MASK_RECORD_NUM = 0x400;
 
     private KBAccSensorValue accSensor;
 
@@ -36,6 +37,8 @@ public class KBAdvPacketSensor extends KBAdvPacketBase{
 
     private Integer co2ElapseSec;
     private Integer co2;
+
+    private Integer newTHRecordNum;
 
     public int getAdvType()
     {
@@ -90,6 +93,10 @@ public class KBAdvPacketSensor extends KBAdvPacketBase{
 
     public Integer getCo2() {
         return co2;
+    }
+
+    public Integer getNewTHRecordNum() {
+        return newTHRecordNum;
     }
 
     public Integer getCo2ElapseSec() {
@@ -231,6 +238,21 @@ public class KBAdvPacketSensor extends KBAdvPacketBase{
             co2 += (beaconData[nSrvIndex++] & 0xFF);
         }else{
             co2 = null;
+        }
+
+        //record number
+        if ((nSensorMask & SENSOR_MASK_RECORD_NUM) > 0) {
+            if (nSrvIndex < (beaconData.length - 3)) {
+                return false;
+            }
+
+            if ((beaconData[nSrvIndex++] & 0x1) > 0)
+            {
+                newTHRecordNum = ((beaconData[nSrvIndex++] & 0xFF) << 8);
+                newTHRecordNum += (beaconData[nSrvIndex++] & 0xFF);
+            }
+        }else{
+            newTHRecordNum = null;
         }
 
         return true;

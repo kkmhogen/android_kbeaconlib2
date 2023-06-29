@@ -1423,7 +1423,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         //frame start
         if (frameType == PDU_TAG_START)
         {
-            //new read configruation
+            //new read configuration
             System.arraycopy(data, 2, action.receiveData, 0, nDataPayloadLen);
             action.receiveDataLen = nDataPayloadLen;
 
@@ -1434,7 +1434,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         {
             if (nDataSeq != action.receiveDataLen || action.receiveDataLen + nDataPayloadLen > MAX_BUFFER_DATA_SIZE)
             {
-                Log.v(LOG_TAG, "Middle receive unknown data sequence:" + nDataSeq + ", expect seq:" + action.receiveDataLen);
+                Log.e(LOG_TAG, "Middle receive unknown data sequence:" + nDataSeq + ", expect seq:" + action.receiveDataLen);
                 configSendDataRptAck((short)action.receiveDataLen, byDataType, (short)0x1);
             }
             else
@@ -1442,6 +1442,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
                 System.arraycopy(data, 2, action.receiveData, action.receiveDataLen, nDataPayloadLen);
                 action.receiveDataLen += nDataPayloadLen;
 
+                //Log.v(LOG_TAG, "Middle receive data " + action.receiveDataLen);
                 configSendDataRptAck((short)action.receiveDataLen, byDataType, (short)0x0);
             }
         }
@@ -1449,7 +1450,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         {
             if (nDataSeq != action.receiveDataLen || action.receiveDataLen + nDataPayloadLen > MAX_BUFFER_DATA_SIZE)
             {
-                Log.v(LOG_TAG, "End receive unknown data sequence:" + nDataSeq + ", expect seq:" + action.receiveDataLen);
+                Log.e(LOG_TAG, "End receive unknown data sequence:" + nDataSeq + ", expect seq:" + action.receiveDataLen);
                 configSendDataRptAck((short)action.receiveDataLen, byDataType, (short)0x1);
             }
             else
@@ -1457,7 +1458,9 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
                 System.arraycopy(data, 2, action.receiveData, action.receiveDataLen, nDataPayloadLen);
                 action.receiveDataLen += nDataPayloadLen;
 
-                //configSendDataRptAck((short)mReceiveDataLen, byDataType, (short)0x0);
+                //all data receive complete
+                configSendDataRptAck((short)action.receiveDataLen, byDataType, (short)0x0);
+
                 bRcvDataCmp = true;
             }
         }
@@ -1467,7 +1470,8 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
             System.arraycopy(data, 2, action.receiveData, action.receiveDataLen, nDataPayloadLen);
             action.receiveDataLen += nDataPayloadLen;
 
-            //configSendDataRptAck((short)mReceiveDataLen, byDataType, (short)0x0);
+            configSendDataRptAck((short)action.receiveDataLen, byDataType, (short)0x0);
+
             bRcvDataCmp = true;
         }
 
@@ -1503,6 +1507,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         short window = 1000;
         byte[] ackWindow = KBUtility.htonbyte(window);
         ackDataBuff.put(ackWindow);
+
         //cause
         byte[] ackCause = KBUtility.htonbyte(cause);
         ackDataBuff.put(ackCause);
@@ -1960,7 +1965,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
             {
                 byte[] ntfData = characteristic.getValue();
                 Message msg = mMsgHandler.obtainMessage(MSG_BEACON_DATA_RECEIVED, ntfData);
-                mMsgHandler.sendMessageDelayed(msg, 50);
+                mMsgHandler.sendMessage(msg);
             }
             else if (charUuid.equals(KBUtility.KB_IND_CHAR_UUID))
             {

@@ -36,7 +36,7 @@ public class KBRecordDataHandler extends Object {
 
     public byte[] makeReadSensorRecordRequest(int sensorType, long nReadRcdNo, int nReadOrder, int nMaxRecordNum)
     {
-        byte[] byMsgReq = new byte[9];
+        byte[] byMsgReq = new byte[10];
         int nIndex = 0;
 
         byMsgReq[nIndex++] = (byte)KBSensorMsgType.MsgReadSensorRecord;
@@ -53,7 +53,10 @@ public class KBRecordDataHandler extends Object {
         byMsgReq[nIndex++] = (byte)(nMaxRecordNum & 0xFF);
 
         //read direction
-        byMsgReq[nIndex] = (byte)nReadOrder;
+        byMsgReq[nIndex++] = (byte)nReadOrder;
+
+        //high speed (connection interval to 30 ms, unit is 1.25ms)
+        byMsgReq[nIndex] = (byte)24;
 
         return byMsgReq;
     }

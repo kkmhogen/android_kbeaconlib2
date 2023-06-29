@@ -34,6 +34,10 @@ public class KBCfgCommon extends KBCfgBase{
     public final static String JSON_FIELD_TRIG_CAPABILITY = "trCap";
     public final static String JSON_FIELD_BATTERY_PERCENT = "btPt";
 
+    //channel mask
+    public final static int ADV_CHANNEL_37_MASK = 0x4;
+    public final static int ADV_CHANNEL_38_MASK = 0x2;
+    public final static int ADV_CHANNEL_39_MASK = 0x1;
 
     //configurable parameters
     public final static String  JSON_FIELD_DEV_NAME = "name";
@@ -41,6 +45,12 @@ public class KBCfgCommon extends KBCfgBase{
     public final static String  JSON_FIELD_MEA_PWR = "meaPwr";
     public final static String  JSON_FIELD_AUTO_POWER_ON = "atPwr";
     public final static String  JSON_FIELD_MAX_ADV_PERIOD = "maxPrd";
+    public final static String  JSON_FIELD_CHANNEL_MASK = "chMsk";
+
+    //flash led interval
+    public final static String  JSON_FIELD_BLINK_LED_INTERVAL = "led";
+    //low battery flash only
+    public final static String  JSON_FIELD_LED_BLINK_ONLY_IN_LOW_BATTERY = "lwBlk";
 
     //support adv slot number
     private Integer maxAdvSlot;
@@ -74,7 +84,15 @@ public class KBCfgCommon extends KBCfgBase{
 
     private String name;
 
-    private Boolean alwaysPowerOn; //beacon automatic start advertisement after powen on
+    //beacon automatic start advertisement after power on
+    private Boolean alwaysPowerOn;
+
+    //advertisement channel mask
+    private Integer advChanelMask;
+
+    //led flash when power on
+    private Integer alwaysLedBlinkInterval;
+    private Boolean lowBatteryLedBlinkOnly;
 
     public Integer getMaxAdvSlot()
     {
@@ -228,6 +246,11 @@ public class KBCfgCommon extends KBCfgBase{
         return ((trigCapability & nTriggerMask) > 0);
     }
 
+    //is support channel mask
+    public boolean isSupportAdvChannelMask()
+    {
+        return ((basicCapability & 0x200000) > 0);
+    }
 
     //trigger capability
     public Integer getTrigCapability()
@@ -268,6 +291,18 @@ public class KBCfgCommon extends KBCfgBase{
     public String getName()
     {
         return name;
+    }
+
+    public Integer getAlwaysLedBlinkInterval() {
+        return alwaysLedBlinkInterval;
+    }
+
+    public Boolean isLowBatteryBlinkOnly(){
+        return lowBatteryLedBlinkOnly;
+    }
+
+    public Integer getAdvChanelMask() {
+        return advChanelMask;
     }
 
     public KBCfgCommon()
@@ -317,6 +352,18 @@ public class KBCfgCommon extends KBCfgBase{
         } else {
             return false;
         }
+    }
+
+    public void setAlwaysFlashLedInterval(Integer alwaysFlashLedInterval) {
+        this.alwaysLedBlinkInterval = alwaysFlashLedInterval;
+    }
+
+    public void setLowBatteryLedBlinkOnly(Boolean lowBatteryFlash) {
+        this.lowBatteryLedBlinkOnly = lowBatteryFlash;
+    }
+
+    public void setAdvChanelMask(Integer advChanelMask) {
+        this.advChanelMask = advChanelMask;
     }
 
     public void setAlwaysPowerOn(Boolean nAutoAdvAfterPowerOn) {
@@ -407,6 +454,23 @@ public class KBCfgCommon extends KBCfgBase{
             nUpdateParaNum++;
         }
 
+        //adv channel mask
+        if (dicts.has(JSON_FIELD_CHANNEL_MASK)) {
+            advChanelMask =  (Integer) dicts.get(JSON_FIELD_CHANNEL_MASK);
+            nUpdateParaNum++;
+        }
+
+        //always led flash
+        if (dicts.has(JSON_FIELD_BLINK_LED_INTERVAL)) {
+            alwaysLedBlinkInterval =  (Integer) dicts.get(JSON_FIELD_BLINK_LED_INTERVAL);
+            nUpdateParaNum++;
+        }
+
+        if (dicts.has(JSON_FIELD_LED_BLINK_ONLY_IN_LOW_BATTERY)) {
+            lowBatteryLedBlinkOnly = (Integer) dicts.get(JSON_FIELD_LED_BLINK_ONLY_IN_LOW_BATTERY) > 0;
+            nUpdateParaNum++;
+        }
+
         return nUpdateParaNum;
     }
 
@@ -432,6 +496,20 @@ public class KBCfgCommon extends KBCfgBase{
         //auto power
         if (alwaysPowerOn != null) {
             configDicts.put(JSON_FIELD_AUTO_POWER_ON, alwaysPowerOn? 1 : 0);
+        }
+
+        //is always flash led
+        if (alwaysLedBlinkInterval != null){
+            configDicts.put(JSON_FIELD_BLINK_LED_INTERVAL, alwaysLedBlinkInterval);
+        }
+
+        if (lowBatteryLedBlinkOnly != null){
+            configDicts.put(JSON_FIELD_LED_BLINK_ONLY_IN_LOW_BATTERY, lowBatteryLedBlinkOnly ? 1 : 0);
+        }
+
+        //channel mask
+        if (advChanelMask != null){
+            configDicts.put(JSON_FIELD_CHANNEL_MASK, advChanelMask);
         }
 
         return configDicts;
