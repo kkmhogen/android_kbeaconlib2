@@ -15,11 +15,19 @@ public class KBCfgSensorCO2 extends KBCfgSensorBase{
     //co2 change threshold
     public static final int DEFAULT_CO2_CHANGE_LOG_THD = 20;
     public static final int MAX_CO2_CHANGE_LOG_THD = 256;
-    public static final int MIN_CO2_CHANGE_LOG_THD = 5;
+    public static final int MIN_CO2_CHANGE_LOG_THD = 0;
+
+    //Log interval
+    public static final int DEFAULT_LOG_INTERVAL = 300;
+    public static final int MAX_LOG_INTERVAL = 14400;
+    public static final int MIN_LOG_INTERVAL = 1;
 
 
     //log enable
     private Boolean logEnable;
+
+    //log interval
+    private Integer logInterval;
 
     //asc enable
     private Boolean ascEnable;
@@ -34,7 +42,7 @@ public class KBCfgSensorCO2 extends KBCfgSensorBase{
     {
         super();
 
-        sensorType = KBSensorType.Light;
+        sensorType = KBSensorType.CO2;
     }
 
 
@@ -77,6 +85,17 @@ public class KBCfgSensorCO2 extends KBCfgSensorBase{
         this.logCO2SaveThreshold = logCO2SaveThreshold;
     }
 
+    //co2 log interval, unit is second,
+    public boolean setLogInterval(Integer nLogInterval)
+    {
+        if (nLogInterval >= MIN_LOG_INTERVAL && nLogInterval <= MAX_LOG_INTERVAL) {
+            logInterval = nLogInterval;
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     public int updateConfig(JSONObject dicts) throws JSONException
     {
         int nUpdateConfigNum = super.updateConfig(dicts);
@@ -90,6 +109,12 @@ public class KBCfgSensorCO2 extends KBCfgSensorBase{
         if (dicts.has(JSON_SENSOR_TYPE_MEASURE_INTERVAL))
         {
             measureInterval = dicts.getInt(JSON_SENSOR_TYPE_MEASURE_INTERVAL);
+            nUpdateConfigNum++;
+        }
+
+        if (dicts.has(JSON_SENSOR_TYPE_LOG_INTERVAL))
+        {
+            logInterval = (Integer) dicts.get(JSON_SENSOR_TYPE_LOG_INTERVAL);
             nUpdateConfigNum++;
         }
 
@@ -120,6 +145,11 @@ public class KBCfgSensorCO2 extends KBCfgSensorBase{
         if (measureInterval != null)
         {
             configDicts.put(JSON_SENSOR_TYPE_MEASURE_INTERVAL, measureInterval);
+        }
+
+        if (logInterval != null)
+        {
+            configDicts.put(JSON_SENSOR_TYPE_LOG_INTERVAL, logInterval);
         }
 
         if (logCO2SaveThreshold != null)

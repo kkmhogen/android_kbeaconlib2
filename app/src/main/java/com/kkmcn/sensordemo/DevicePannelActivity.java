@@ -256,7 +256,8 @@ public class DevicePannelActivity extends AppBaseActivity implements View.OnClic
                 break;
 
             case R.id.ringDevice:
-                ringDevice();
+                //ringDevice();
+                settingChannelMask();
                 break;
             default:
                 break;
@@ -1187,13 +1188,13 @@ public class DevicePannelActivity extends AppBaseActivity implements View.OnClic
         sensorHTPara.setLogEnable(true);
 
         //unit is second, set measure temperature and humidity interval
-        sensorHTPara.setSensorHtMeasureInterval(2);
+        sensorHTPara.setMeasureInterval(2);
 
         //unit is 0.1%, if abs(current humidity - last saved humidity) > 3, then save new record
-        sensorHTPara.setHumidityChangeThreshold(30);
+        sensorHTPara.setHumidityLogThreshold(30);
 
         //unit is 0.1 Celsius, if abs(current temperature - last saved temperature) > 0.5, then save new record
-        sensorHTPara.setTemperatureChangeThreshold(5);
+        sensorHTPara.setTemperatureLogThreshold(5);
 
         //enable sensor advertisement
         mBeacon.modifyConfig(sensorHTPara, new KBeacon.ActionCallback() {
@@ -1206,6 +1207,49 @@ public class DevicePannelActivity extends AppBaseActivity implements View.OnClic
                 else
                 {
                     toastShow("config failed for error:" + error.errorCode);
+                }
+            }
+        });
+    }
+
+    //set adv channel mask
+    public void settingChannelMask(){
+        if (!mBeacon.isConnected()) {
+            toastShow("Device is not connected");
+            return;
+        }
+
+        //check capability
+        final KBCfgCommon cfgCommon = mBeacon.getCommonCfg();
+        if (cfgCommon != null && !cfgCommon.isSupportAdvChannelMask())
+        {
+            toastShow("device does not support channel mask");
+            return;
+        }
+
+        KBCfgAdvIBeacon iBeaconAdv = new KBCfgAdvIBeacon();
+        iBeaconAdv.setSlotIndex(0);
+
+        //disable advertisement on channel 38 and 39
+        iBeaconAdv.setAdvChanelMask(KBCfgAdvBase.ADV_CH_38_DISABLE_MASK | KBCfgAdvBase.ADV_CH_39_DISABLE_MASK);
+
+        iBeaconAdv.setAdvPeriod(1022.5f);
+        iBeaconAdv.setTxPower(0);
+        iBeaconAdv.setUuid("B9407F30-F5F8-466E-AFF9-25556B570003");
+        iBeaconAdv.setMajorID(10);
+        iBeaconAdv.setMinorID(155);
+
+        mBeacon.modifyConfig(iBeaconAdv, new KBeacon.ActionCallback() {
+            @Override
+            public void onActionComplete(boolean bConfigSuccess, KBException error) {
+                mRingButton.setEnabled(true);
+                if (bConfigSuccess)
+                {
+                    toastShow("modify adv channel mask success");
+                }
+                else
+                {
+                    toastShow("modify adv channel mask failed:" + error.errorCode);
                 }
             }
         });

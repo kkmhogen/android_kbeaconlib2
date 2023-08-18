@@ -14,6 +14,11 @@ public class KBCfgSensorHT extends KBCfgSensorBase{
     public static final int MAX_MEASURE_INTERVAL = 200;
     public static final int MIN_MEASURE_INTERVAL = 1;
 
+    //Log interval
+    public static final int DEFAULT_LOG_INTERVAL = 300;
+    public static final int MAX_LOG_INTERVAL = 14400;
+    public static final int MIN_LOG_INTERVAL = 1;
+
     //temperature change threshold
     public static final int DEFAULT_HT_TEMP_CHANGE_THD = 5;   //0.1 Celsius
     public static final int MAX_HT_TEMP_CHANGE_LOG_THD = 200;  //max value is 20 Celsius
@@ -28,7 +33,10 @@ public class KBCfgSensorHT extends KBCfgSensorBase{
     private Boolean logEnable;
 
     //measure interval
-    private Integer sensorHtMeasureInterval;
+    private Integer measureInterval;
+
+    //log interval
+    private Integer logInterval;
 
     //temperature interval
     private Integer temperatureChangeThreshold;
@@ -51,17 +59,22 @@ public class KBCfgSensorHT extends KBCfgSensorBase{
         return sensorType;
     }
 
-    public Integer getSensorHtMeasureInterval()
+    public Integer getMeasureInterval()
     {
-        return sensorHtMeasureInterval;
+        return measureInterval;
     }
 
-    public  Integer getTemperatureChangeThreshold()
+    public Integer getLogInterval()
+    {
+        return logInterval;
+    }
+
+    public  Integer getTemperatureChangeLogThreshold()
     {
         return temperatureChangeThreshold;
     }
 
-    public Integer getHumidityChangeThreshold()
+    public Integer getHumidityChangeLogThreshold()
     {
         return humidityChangeThreshold;
     }
@@ -72,21 +85,32 @@ public class KBCfgSensorHT extends KBCfgSensorBase{
     }
 
     //Temperature and humidity measure interval, unit is second,
-    public void setSensorHtMeasureInterval(Integer nMeasureInterval)
+    public void setMeasureInterval(Integer nMeasureInterval)
     {
-        sensorHtMeasureInterval = nMeasureInterval;
+        measureInterval = nMeasureInterval;
+    }
+
+    //Temperature and humidity log interval, unit is second,
+    public boolean setLogInterval(Integer nLogInterval)
+    {
+        if (nLogInterval >= MIN_LOG_INTERVAL && nLogInterval <= MAX_LOG_INTERVAL) {
+            logInterval = nLogInterval;
+            return true;
+        } else {
+            return false;
+        }
     }
 
     //Temperature log threshold, unit is 0.1 Celsius,
     // for example, if nSaveThd = 5, then if abs(current temperature - last saved temperature) > 0.5, then device will save new record
-    public void setTemperatureChangeThreshold(Integer nSaveThd)
+    public void setTemperatureLogThreshold(Integer nSaveThd)
     {
         temperatureChangeThreshold = nSaveThd;
     }
 
     //Humidity log threshold, unit is 0.1%
     //for example, if nSaveThd = 50, then if abs(current humidity - last saved humidity) > 5, then device will save new record
-    public void setHumidityChangeThreshold(Integer nSaveThd)
+    public void setHumidityLogThreshold(Integer nSaveThd)
     {
         humidityChangeThreshold = nSaveThd;
     }
@@ -105,7 +129,13 @@ public class KBCfgSensorHT extends KBCfgSensorBase{
 
         if (dicts.has(JSON_SENSOR_TYPE_MEASURE_INTERVAL))
         {
-            sensorHtMeasureInterval = (Integer) dicts.get(JSON_SENSOR_TYPE_MEASURE_INTERVAL);
+            measureInterval = (Integer) dicts.get(JSON_SENSOR_TYPE_MEASURE_INTERVAL);
+            nUpdateConfigNum++;
+        }
+
+        if (dicts.has(JSON_SENSOR_TYPE_LOG_INTERVAL))
+        {
+            logInterval = (Integer) dicts.get(JSON_SENSOR_TYPE_LOG_INTERVAL);
             nUpdateConfigNum++;
         }
 
@@ -133,9 +163,14 @@ public class KBCfgSensorHT extends KBCfgSensorBase{
             configDicts.put(JSON_SENSOR_TYPE_LOG_ENABLE, logEnable ? 1: 0);
         }
 
-        if (sensorHtMeasureInterval != null)
+        if (measureInterval != null)
         {
-            configDicts.put(JSON_SENSOR_TYPE_MEASURE_INTERVAL, sensorHtMeasureInterval);
+            configDicts.put(JSON_SENSOR_TYPE_MEASURE_INTERVAL, measureInterval);
+        }
+
+        if (logInterval != null)
+        {
+            configDicts.put(JSON_SENSOR_TYPE_LOG_INTERVAL, logInterval);
         }
 
         if (temperatureChangeThreshold != null)

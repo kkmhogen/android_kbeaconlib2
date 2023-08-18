@@ -45,7 +45,6 @@ public class KBCfgCommon extends KBCfgBase{
     public final static String  JSON_FIELD_MEA_PWR = "meaPwr";
     public final static String  JSON_FIELD_AUTO_POWER_ON = "atPwr";
     public final static String  JSON_FIELD_MAX_ADV_PERIOD = "maxPrd";
-    public final static String  JSON_FIELD_CHANNEL_MASK = "chMsk";
 
     //flash led interval
     public final static String  JSON_FIELD_BLINK_LED_INTERVAL = "led";
@@ -86,9 +85,6 @@ public class KBCfgCommon extends KBCfgBase{
 
     //beacon automatic start advertisement after power on
     private Boolean alwaysPowerOn;
-
-    //advertisement channel mask
-    private Integer advChanelMask;
 
     //led flash when power on
     private Integer alwaysLedBlinkInterval;
@@ -301,9 +297,6 @@ public class KBCfgCommon extends KBCfgBase{
         return lowBatteryLedBlinkOnly;
     }
 
-    public Integer getAdvChanelMask() {
-        return advChanelMask;
-    }
 
     public KBCfgCommon()
     {
@@ -360,10 +353,6 @@ public class KBCfgCommon extends KBCfgBase{
 
     public void setLowBatteryLedBlinkOnly(Boolean lowBatteryFlash) {
         this.lowBatteryLedBlinkOnly = lowBatteryFlash;
-    }
-
-    public void setAdvChanelMask(Integer advChanelMask) {
-        this.advChanelMask = advChanelMask;
     }
 
     public void setAlwaysPowerOn(Boolean nAutoAdvAfterPowerOn) {
@@ -454,11 +443,6 @@ public class KBCfgCommon extends KBCfgBase{
             nUpdateParaNum++;
         }
 
-        //adv channel mask
-        if (dicts.has(JSON_FIELD_CHANNEL_MASK)) {
-            advChanelMask =  (Integer) dicts.get(JSON_FIELD_CHANNEL_MASK);
-            nUpdateParaNum++;
-        }
 
         //always led flash
         if (dicts.has(JSON_FIELD_BLINK_LED_INTERVAL)) {
@@ -505,11 +489,6 @@ public class KBCfgCommon extends KBCfgBase{
 
         if (lowBatteryLedBlinkOnly != null){
             configDicts.put(JSON_FIELD_LED_BLINK_ONLY_IN_LOW_BATTERY, lowBatteryLedBlinkOnly ? 1 : 0);
-        }
-
-        //channel mask
-        if (advChanelMask != null){
-            configDicts.put(JSON_FIELD_CHANNEL_MASK, advChanelMask);
         }
 
         return configDicts;

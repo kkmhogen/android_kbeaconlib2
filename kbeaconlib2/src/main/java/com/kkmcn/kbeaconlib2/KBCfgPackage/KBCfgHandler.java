@@ -113,7 +113,11 @@ public class KBCfgHandler {
         for (KBCfgTrigger triggerCfg: kbDeviceCfgTriggerLists)
         {
             Integer triggerSlotIndex = triggerCfg.getTriggerAdvSlot();
-            if (triggerSlotIndex != null && triggerSlotIndex == nSlotIndex)
+            Integer triggerAction = triggerCfg.getTriggerAction();
+            if (triggerSlotIndex != null
+                    && triggerAction != null
+                    && triggerSlotIndex == nSlotIndex
+                    && (triggerAction & KBTriggerAction.Advertisement) > 0)
             {
                 if (cfgList == null) {
                     cfgList = new ArrayList<>(2);

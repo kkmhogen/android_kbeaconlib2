@@ -15,6 +15,7 @@ public class KBCfgSensorBase extends KBCfgBase{
 
     public static final String JSON_SENSOR_TYPE_LOG_ENABLE = "log";
     public static final String JSON_SENSOR_TYPE_MEASURE_INTERVAL = "msItvl";
+    public static final String JSON_SENSOR_TYPE_LOG_INTERVAL = "lgItvl";
 
     //sensor type
     protected Integer sensorType;

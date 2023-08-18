@@ -14,6 +14,11 @@ public class KBCfgSensorVOC  extends KBCfgSensorBase{
     public static final int MAX_VOC_MEASURE_INTERVAL = 200;
     public static final int MIN_VOC_MEASURE_INTERVAL = 3;
 
+    //log interval
+    public static final int DEFAULT_LOG_INTERVAL = 200;
+    public static final int MAX_LOG_INTERVAL = 14400;
+    public static final int MIN_LOG_INTERVAL = 1;
+
     //voc change threshold
     public static final int DEFAULT_VOC_CHANGE_LOG_THD = 20;
     public static final int MAX_VOC_CHANGE_LOG_THD = 250;
@@ -29,6 +34,9 @@ public class KBCfgSensorVOC  extends KBCfgSensorBase{
 
     //measure interval
     private Integer measureInterval;
+
+    //log interval
+    private Integer logInterval = null;
 
     //voc change threshold
     private Integer logVocChangeThreshold;
@@ -51,6 +59,11 @@ public class KBCfgSensorVOC  extends KBCfgSensorBase{
 
     public Boolean isLogEnable() {
         return logEnable;
+    }
+
+    public Integer getLogInterval()
+    {
+        return logInterval;
     }
 
     public void setLogEnable(Boolean logEnable) {
@@ -84,6 +97,17 @@ public class KBCfgSensorVOC  extends KBCfgSensorBase{
         this.logVocChangeThreshold = vocChangeThreshold;
     }
 
+    //VOC interval, unit is second,
+    public boolean setLogInterval(Integer nLogInterval)
+    {
+        if (nLogInterval >= MIN_LOG_INTERVAL && nLogInterval <= MAX_LOG_INTERVAL) {
+            logInterval = nLogInterval;
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     public int updateConfig(JSONObject dicts) throws JSONException
     {
         int nUpdateConfigNum = super.updateConfig(dicts);
@@ -98,6 +122,12 @@ public class KBCfgSensorVOC  extends KBCfgSensorBase{
         if (dicts.has(JSON_SENSOR_TYPE_MEASURE_INTERVAL))
         {
             measureInterval = dicts.getInt(JSON_SENSOR_TYPE_MEASURE_INTERVAL);
+            nUpdateConfigNum++;
+        }
+
+        if (dicts.has(JSON_SENSOR_TYPE_LOG_INTERVAL))
+        {
+            logInterval = dicts.getInt(JSON_SENSOR_TYPE_LOG_INTERVAL);
             nUpdateConfigNum++;
         }
 
@@ -128,6 +158,11 @@ public class KBCfgSensorVOC  extends KBCfgSensorBase{
         if (measureInterval != null)
         {
             configDicts.put(JSON_SENSOR_TYPE_MEASURE_INTERVAL, measureInterval);
+        }
+
+        if (logInterval != null)
+        {
+            configDicts.put(JSON_SENSOR_TYPE_LOG_INTERVAL, logInterval);
         }
 
         if (logVocChangeThreshold != null)

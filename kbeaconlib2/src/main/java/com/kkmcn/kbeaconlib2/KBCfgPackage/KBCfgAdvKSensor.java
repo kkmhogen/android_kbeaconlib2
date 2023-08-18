@@ -86,6 +86,10 @@ public class KBCfgAdvKSensor extends KBCfgAdvBase{
         return recordInclude;
     }
 
+    public Integer getAdvChanelMask() {
+        return advChanelMask;
+    }
+
     public int updateConfig(JSONObject dicts) throws JSONException
     {
         int nUpdateConfigNum = super.updateConfig(dicts);
@@ -132,6 +136,13 @@ public class KBCfgAdvKSensor extends KBCfgAdvBase{
             nUpdateConfigNum++;
         }
 
+        //adv channel mask
+        if (dicts.has(JSON_FIELD_CHANNEL_MASK)) {
+            advChanelMask =  (Integer) dicts.get(JSON_FIELD_CHANNEL_MASK);
+            nUpdateConfigNum++;
+        }
+
+
         return nUpdateConfigNum;
     }
 
@@ -172,6 +183,11 @@ public class KBCfgAdvKSensor extends KBCfgAdvBase{
         if (recordInclude != null)
         {
             configDicts.put(JSON_FIELD_RECORD_COUNT, recordInclude ? 1: 0);
+        }
+
+        //channel mask
+        if (advChanelMask != null){
+            configDicts.put(JSON_FIELD_CHANNEL_MASK, advChanelMask);
         }
 
         return configDicts;

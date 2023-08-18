@@ -30,6 +30,11 @@ public class KBCfgAdvBase extends KBCfgBase{
     public final static String  JSON_FIELD_ADV_TRIGGER_ONLY= "trAdv";
     public final static String  JSON_FIELD_ADV_CONNECTABLE = "conn";
     public final static String  JSON_FIELD_ADV_MODE = "mode";
+    public final static String  JSON_FIELD_CHANNEL_MASK = "chMsk";
+
+    public final static Integer ADV_CH_37_DISABLE_MASK = 0x4;
+    public final static Integer ADV_CH_38_DISABLE_MASK = 0x2;
+    public final static Integer ADV_CH_39_DISABLE_MASK = 0x1;
 
     protected Integer slotIndex;
 
@@ -44,6 +49,9 @@ public class KBCfgAdvBase extends KBCfgBase{
     protected Integer advMode;       //advertisement mode
 
     protected Boolean advTriggerOnly;
+
+    //advertisement channel mask
+    protected Integer advChanelMask;
 
     public Integer getSlotIndex(){return slotIndex;}
 
@@ -70,6 +78,8 @@ public class KBCfgAdvBase extends KBCfgBase{
 
     public Integer getAdvMode(){return advMode;}
 
+    public Integer getAdvChanelMask(){return advChanelMask;}
+
     protected KBCfgAdvBase()
     {
     }
@@ -80,6 +90,16 @@ public class KBCfgAdvBase extends KBCfgBase{
         slotIndex = nSlotIndex;
     }
 
+    //The advertisement channel mask is 3 bit (37,38,39 channel), if the msak bit is 0, then it not advertisement on the channel
+    //for example, if the advChannelMask is 0x3, then the beacon only advertisement on channel 37
+    public boolean setAdvChanelMask(Integer advChanelMask) {
+        if (advChanelMask < 7) {
+            this.advChanelMask = advChanelMask;
+            return true;
+        }else{
+            return false;
+        }
+    }
 
     //please reference KBAdvMode for more detail
     //some device may only support KBAdvMode.Legacy
@@ -168,6 +188,12 @@ public class KBCfgAdvBase extends KBCfgBase{
             nUpdateParaNum++;
         }
 
+        //adv channel mask
+        if (dicts.has(JSON_FIELD_CHANNEL_MASK)) {
+            advChanelMask =  (Integer) dicts.get(JSON_FIELD_CHANNEL_MASK);
+            nUpdateParaNum++;
+        }
+
         if (dicts.has(JSON_FIELD_ADV_MODE))
         {
             advMode = dicts.getInt(JSON_FIELD_ADV_MODE);
@@ -200,6 +226,10 @@ public class KBCfgAdvBase extends KBCfgBase{
 
         if (advType != null) {
             configDicts.put(JSON_FIELD_BEACON_TYPE, advType);
+        }
+
+        if (advChanelMask != null) {
+            configDicts.put(JSON_FIELD_CHANNEL_MASK, advChanelMask);
         }
 
         if (advConnectable != null) {
