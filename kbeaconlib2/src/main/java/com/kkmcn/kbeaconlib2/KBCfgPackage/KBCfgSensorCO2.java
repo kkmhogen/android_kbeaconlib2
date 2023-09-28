@@ -85,6 +85,10 @@ public class KBCfgSensorCO2 extends KBCfgSensorBase{
         this.logCO2SaveThreshold = logCO2SaveThreshold;
     }
 
+    public Integer getLogInterval() {
+        return logInterval;
+    }
+
     //co2 log interval, unit is second,
     public boolean setLogInterval(Integer nLogInterval)
     {
