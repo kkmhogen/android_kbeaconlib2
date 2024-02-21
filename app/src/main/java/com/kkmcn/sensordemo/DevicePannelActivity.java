@@ -25,6 +25,7 @@ import com.kkmcn.kbeaconlib2.KBCfgPackage.KBCfgSensorBase;
 import com.kkmcn.kbeaconlib2.KBCfgPackage.KBCfgSensorHT;
 import com.kkmcn.kbeaconlib2.KBCfgPackage.KBCfgSensorLight;
 import com.kkmcn.kbeaconlib2.KBCfgPackage.KBCfgTrigger;
+import com.kkmcn.kbeaconlib2.KBCfgPackage.KBCfgTriggerAngle;
 import com.kkmcn.kbeaconlib2.KBCfgPackage.KBCfgTriggerMotion;
 import com.kkmcn.kbeaconlib2.KBCfgPackage.KBSensorType;
 import com.kkmcn.kbeaconlib2.KBCfgPackage.KBTimeRange;
@@ -1435,6 +1436,68 @@ public class DevicePannelActivity extends AppBaseActivity implements View.OnClic
                         }
                     }
                 });
+    }
+
+    //read battery percent when connected
+    public void readBatteryPercent()
+    {
+        if (!mBeacon.isConnected()) {
+            toastShow("Device is not connected");
+            return;
+        }
+
+        //get battery percent(the SDK will read battery level after authentication)
+        final KBCfgCommon commPara = mBeacon.getCommonCfg();
+        if (commPara != null)
+        {
+            Log.v(LOG_TAG, "old battery percent:" + commPara.getBatteryPercent());
+        }
+
+        //read new battery percent from device again
+        mBeacon.readCommonConfig((result, jsonObject, error) -> {
+            //read complete
+            if (result && jsonObject != null) {
+                final KBCfgCommon newCommPara = mBeacon.getCommonCfg();
+                Log.v(LOG_TAG, "new battery percent:" + newCommPara.getBatteryPercent());
+
+                //--------also the JSON object contain battery percent
+                //jsonObject.getInt("btPt")
+            }
+        });
+    }
+
+    //set tilt angle trigger
+    public void enableTiltAngleTrigger()
+    {
+        //check capability
+        final KBCfgCommon cfgCommon = (KBCfgCommon)mBeacon.getCommonCfg();
+        if (cfgCommon != null && !cfgCommon.isSupportTrigger(KBTriggerType.AccAngle))
+        {
+            Log.e(LOG_TAG, "device does not support acc tilt angle trigger");
+            return;
+        }
+
+        //set tilt angle trigger
+        KBCfgTriggerAngle angleTrigger = new KBCfgTriggerAngle();
+        angleTrigger.setTriggerAction(KBTriggerAction.Advertisement | KBTriggerAction.Report2App);
+        angleTrigger.setTriggerAdvSlot(0);
+
+        //set trigger angle
+        angleTrigger.setTriggerPara(45);        //set below angle threshold
+        angleTrigger.setAboveAngle(90);         //set above angle threshold
+        angleTrigger.setReportingInterval(1);   //set repeat report interval to 1 minutes
+
+        mBeacon.modifyConfig(angleTrigger,
+            (bConfigSuccess, error) -> {
+                if (bConfigSuccess)
+                {
+                    Log.v(LOG_TAG, "Enable angle trigger success");
+                }
+                else
+                {
+                    Log.v(LOG_TAG, "Enable angle trigger failed");
+                }
+            });
     }
 
     //read door PIR detection history records

@@ -14,11 +14,6 @@ public class KBCfgSensorHT extends KBCfgSensorBase{
     public static final int MAX_MEASURE_INTERVAL = 200;
     public static final int MIN_MEASURE_INTERVAL = 1;
 
-    //Log interval
-    public static final int DEFAULT_LOG_INTERVAL = 300;
-    public static final int MAX_LOG_INTERVAL = 14400;
-    public static final int MIN_LOG_INTERVAL = 1;
-
     //temperature change threshold
     public static final int DEFAULT_HT_TEMP_CHANGE_THD = 5;   //0.1 Celsius
     public static final int MAX_HT_TEMP_CHANGE_LOG_THD = 200;  //max value is 20 Celsius
@@ -34,9 +29,6 @@ public class KBCfgSensorHT extends KBCfgSensorBase{
 
     //measure interval
     private Integer measureInterval;
-
-    //log interval
-    private Integer logInterval;
 
     //temperature interval
     private Integer temperatureChangeThreshold;
@@ -64,10 +56,6 @@ public class KBCfgSensorHT extends KBCfgSensorBase{
         return measureInterval;
     }
 
-    public Integer getLogInterval()
-    {
-        return logInterval;
-    }
 
     public  Integer getTemperatureChangeLogThreshold()
     {
@@ -88,17 +76,6 @@ public class KBCfgSensorHT extends KBCfgSensorBase{
     public void setMeasureInterval(Integer nMeasureInterval)
     {
         measureInterval = nMeasureInterval;
-    }
-
-    //Temperature and humidity log interval, unit is second,
-    public boolean setLogInterval(Integer nLogInterval)
-    {
-        if (nLogInterval >= MIN_LOG_INTERVAL && nLogInterval <= MAX_LOG_INTERVAL) {
-            logInterval = nLogInterval;
-            return true;
-        } else {
-            return false;
-        }
     }
 
     //Temperature log threshold, unit is 0.1 Celsius,
@@ -133,12 +110,6 @@ public class KBCfgSensorHT extends KBCfgSensorBase{
             nUpdateConfigNum++;
         }
 
-        if (dicts.has(JSON_SENSOR_TYPE_LOG_INTERVAL))
-        {
-            logInterval = (Integer) dicts.get(JSON_SENSOR_TYPE_LOG_INTERVAL);
-            nUpdateConfigNum++;
-        }
-
         if (dicts.has(JSON_SENSOR_TYPE_HT_TEMP_CHANGE_THD))
         {
             temperatureChangeThreshold = (Integer) dicts.get(JSON_SENSOR_TYPE_HT_TEMP_CHANGE_THD);
@@ -166,11 +137,6 @@ public class KBCfgSensorHT extends KBCfgSensorBase{
         if (measureInterval != null)
         {
             configDicts.put(JSON_SENSOR_TYPE_MEASURE_INTERVAL, measureInterval);
-        }
-
-        if (logInterval != null)
-        {
-            configDicts.put(JSON_SENSOR_TYPE_LOG_INTERVAL, logInterval);
         }
 
         if (temperatureChangeThreshold != null)

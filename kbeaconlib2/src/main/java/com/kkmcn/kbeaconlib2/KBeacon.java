@@ -227,7 +227,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
     }
 
     //get ble device
-    public BluetoothDevice getBleDevice() 
+    public BluetoothDevice getBleDevice()
     {
         return mBleDevice;
     }
@@ -367,12 +367,17 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
     //connect to device with specified parameters
     //When the app is connected to the KBeacon device, the app can specify which the configuration parameters to be read,
     //The parameter that can be read include: common parameters, advertisement parameters, trigger parameters, and sensor parameters
+    @SuppressLint("MissingPermission")
     public boolean connectEnhanced(String password, int timeout, KBConnPara connPara, ConnStateDelegate connectCallback)
     {
         if (state == KBConnState.Disconnected && password.length() <= 16 && password.length() >= 8)
         {
             delegate = connectCallback;
-            mGattConnection = mBleDevice.connectGatt(mContext, false, mGattCallback);
+           if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M){
+               mGattConnection = mBleDevice.connectGatt(mContext, false, mGattCallback,BluetoothDevice.TRANSPORT_LE);
+           }else {
+               mGattConnection = mBleDevice.connectGatt(mContext, false, mGattCallback);
+           }
             Log.v(LOG_TAG, "start connect to device " + mac);
 
             mPassword = password;
@@ -1172,7 +1177,12 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         }
 
         BluetoothGattDescriptor descriptor = characteristic.getDescriptor(KBUtility.CHARACTERISTIC_NOTIFICATION_DESCRIPTOR_UUID);
-        descriptor.setValue(BluetoothGattDescriptor.ENABLE_INDICATION_VALUE);
+        if ((characteristic.getProperties() & BluetoothGattCharacteristic.PROPERTY_INDICATE) > 0) {
+            descriptor.setValue(BluetoothGattDescriptor.ENABLE_INDICATION_VALUE);
+        }else{
+            descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+        }
+
         return mGattConnection.writeDescriptor(descriptor);
     }
 
@@ -1218,7 +1228,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         //down data head
         byte[] downData = new byte[nDataLen + MSG_PDU_HEAD_LEN];
         downData[0] = (byte)(((action.downDataType << 4) + nPduTag) & 0xFF);
-        byte nNetOrderSeq[] = KBUtility.htonbyte((short)nReqDataSeq);
+        byte[] nNetOrderSeq = KBUtility.htonbyte((short)nReqDataSeq);
         downData[1] = nNetOrderSeq[0];
         downData[2] = nNetOrderSeq[1];
 

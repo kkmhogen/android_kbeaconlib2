@@ -17,8 +17,15 @@ public class KBCfgSensorBase extends KBCfgBase{
     public static final String JSON_SENSOR_TYPE_MEASURE_INTERVAL = "msItvl";
     public static final String JSON_SENSOR_TYPE_LOG_INTERVAL = "lgItvl";
 
+    //Log interval
+    public static final int DEFAULT_LOG_INTERVAL = 300;
+    public static final int MAX_LOG_INTERVAL = 14400;
+    public static final int MIN_LOG_INTERVAL = 1;
+
     //sensor type
     protected Integer sensorType;
+
+    protected Integer logInterval;
 
     private Integer disablePeriod0;
 
@@ -32,6 +39,21 @@ public class KBCfgSensorBase extends KBCfgBase{
 
     public Integer getSensorType() {
         return sensorType;
+    }
+
+    public Integer getLogInterval() {
+        return logInterval;
+    }
+
+    // log interval, unit is second,
+    public boolean setLogInterval(Integer nLogInterval)
+    {
+        if (nLogInterval >= MIN_LOG_INTERVAL && nLogInterval <= MAX_LOG_INTERVAL) {
+            logInterval = nLogInterval;
+            return true;
+        } else {
+            return false;
+        }
     }
 
     public KBTimeRange getDisablePeriod0() {
@@ -97,6 +119,12 @@ public class KBCfgSensorBase extends KBCfgBase{
             nUpdateConfigNum++;
         }
 
+        if (dicts.has(JSON_SENSOR_TYPE_LOG_INTERVAL))
+        {
+            logInterval = (Integer) dicts.get(JSON_SENSOR_TYPE_LOG_INTERVAL);
+            nUpdateConfigNum++;
+        }
+
         return nUpdateConfigNum;
     }
 
@@ -118,6 +146,10 @@ public class KBCfgSensorBase extends KBCfgBase{
         if (disablePeriod2 != null)
         {
             configDicts.put(JSON_SENSOR_DISABLE_PERIOD2, disablePeriod2);
+        }
+        if (logInterval != null)
+        {
+            configDicts.put(JSON_SENSOR_TYPE_LOG_INTERVAL, logInterval);
         }
         return configDicts;
     }

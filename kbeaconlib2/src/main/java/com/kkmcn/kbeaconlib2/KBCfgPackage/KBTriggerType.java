@@ -5,7 +5,7 @@ public class KBTriggerType {
 
     //motion sensor trigger
     public static final int AccMotion = 1;
-
+    public static final int AccAngle = 2;
     //push button trigger
     public static final int BtnLongPress = 3;   //long press
     public static final int BtnSingleClick = 4;   //single tap
@@ -29,4 +29,9 @@ public class KBTriggerType {
     //Light lux level
     public static final int LightLUXAbove = 14;   //light lux above
     public static final int LightLUXBelow = 15;   //light lux below
+
+
+    //acc axis position report
+    public static final int AccPositionReport = 60;
+
 }

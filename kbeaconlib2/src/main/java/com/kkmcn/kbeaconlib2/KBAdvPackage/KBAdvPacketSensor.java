@@ -229,7 +229,7 @@ public class KBAdvPacketSensor extends KBAdvPacketBase{
 
         //get co2 value
         if ((nSensorMask & SENSOR_MASK_CO2) > 0) {
-            if (nSrvIndex < (beaconData.length - 3)) {
+            if (nSrvIndex > (beaconData.length - 3)) {
                 return false;
             }
 
@@ -242,7 +242,7 @@ public class KBAdvPacketSensor extends KBAdvPacketBase{
 
         //record number
         if ((nSensorMask & SENSOR_MASK_RECORD_NUM) > 0) {
-            if (nSrvIndex < (beaconData.length - 3)) {
+            if (nSrvIndex > (beaconData.length - 3)) {
                 return false;
             }
 

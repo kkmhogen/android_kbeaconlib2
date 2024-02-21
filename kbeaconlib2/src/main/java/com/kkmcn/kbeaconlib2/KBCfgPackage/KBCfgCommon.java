@@ -45,6 +45,7 @@ public class KBCfgCommon extends KBCfgBase{
     public final static String  JSON_FIELD_MEA_PWR = "meaPwr";
     public final static String  JSON_FIELD_AUTO_POWER_ON = "atPwr";
     public final static String  JSON_FIELD_MAX_ADV_PERIOD = "maxPrd";
+    public final static String JSON_FIELD_IDENTIFY = "id";
 
     //flash led interval
     public final static String  JSON_FIELD_BLINK_LED_INTERVAL = "led";
@@ -75,6 +76,8 @@ public class KBCfgCommon extends KBCfgBase{
     private String version;
 
     private String hversion;
+
+    private Integer serialNo;
 
     ////////////////////can be configruation able///////////////////////
     private Integer refPower1Meters;   //received RSSI at 1 meters
@@ -173,6 +176,12 @@ public class KBCfgCommon extends KBCfgBase{
     {
         int nAdvCapability = (basicCapability >> 8);
         return ((nAdvCapability >> (KBAdvType.System -1)) & 0x1) > 0;
+    }
+
+    public boolean isSupportAOA()
+    {
+        int nAdvCapability = (basicCapability >> 8);
+        return ((nAdvCapability >> (KBAdvType.AOA -1)) & 0x1) > 0;
     }
 
     //is support button
@@ -329,6 +338,10 @@ public class KBCfgCommon extends KBCfgBase{
         }
     }
 
+    public Integer getSerialNo() {
+        return serialNo;
+    }
+
     public boolean setPassword(String strPwd) {
         if (strPwd.length() >= 8 && strPwd.length() <= 16) {
             password = strPwd;
@@ -443,6 +456,11 @@ public class KBCfgCommon extends KBCfgBase{
             nUpdateParaNum++;
         }
 
+        //identify
+        if (dicts.has(JSON_FIELD_IDENTIFY)) {
+            serialNo = (Integer) dicts.get(JSON_FIELD_IDENTIFY);
+            nUpdateParaNum++;
+        }
 
         //always led flash
         if (dicts.has(JSON_FIELD_BLINK_LED_INTERVAL)) {

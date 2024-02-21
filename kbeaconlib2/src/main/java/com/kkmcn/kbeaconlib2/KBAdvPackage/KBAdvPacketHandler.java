@@ -34,6 +34,7 @@ public class KBAdvPacketHandler {
         kbAdvPacketTypeObjects.put(String.valueOf(KBAdvType.EddyUID), KBAdvPacketEddyUID.class);
         kbAdvPacketTypeObjects.put(String.valueOf(KBAdvType.IBeacon), KBAdvPacketIBeacon.class);
         kbAdvPacketTypeObjects.put(String.valueOf(KBAdvType.System), KBAdvPacketSystem.class);
+        kbAdvPacketTypeObjects.put(String.valueOf(KBAdvType.AOA), KBAdvPacketAOA.class);
     }
 
     public KBAdvPacketHandler()
@@ -89,6 +90,8 @@ public class KBAdvPacketHandler {
                         nAdvType = KBAdvType.Sensor;
                     }else if (beaconData[0] == 0x22 && beaconData.length >= MIN_SYSTEM_ADV_LEN) {
                         nAdvType = KBAdvType.System;
+                    } else if (beaconData[0] == 0x4) {
+                        nAdvType = KBAdvType.AOA;
                     }
                 }
             }

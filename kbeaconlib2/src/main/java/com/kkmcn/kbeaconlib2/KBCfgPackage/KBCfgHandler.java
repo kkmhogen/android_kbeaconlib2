@@ -31,7 +31,7 @@ public class KBCfgHandler {
 
     static
     {
-        kbCfgAdvObjects = new HashMap<>(5);
+        kbCfgAdvObjects = new HashMap<>(10);
         kbCfgAdvObjects.put(String.valueOf(KBAdvType.AdvNull), KBCfgAdvNull.class);
         kbCfgAdvObjects.put(String.valueOf(KBAdvType.Sensor), KBCfgAdvKSensor.class);
         kbCfgAdvObjects.put(String.valueOf(KBAdvType.EddyUID), KBCfgAdvEddyUID.class);
@@ -39,8 +39,10 @@ public class KBCfgHandler {
         kbCfgAdvObjects.put(String.valueOf(KBAdvType.EddyURL), KBCfgAdvEddyURL.class);
         kbCfgAdvObjects.put(String.valueOf(KBAdvType.IBeacon), KBCfgAdvIBeacon.class);
         kbCfgAdvObjects.put(String.valueOf(KBAdvType.System), KBCfgAdvSystem.class);
+        kbCfgAdvObjects.put(String.valueOf(KBAdvType.AOA), KBCfgAdvAOA.class);
 
-        kbCfgTriggerObjects = new HashMap<>(10);
+        kbCfgTriggerObjects = new HashMap<>(20);
+        kbCfgTriggerObjects.put(String.valueOf(KBTriggerType.AccAngle), KBCfgTriggerAngle.class);
         kbCfgTriggerObjects.put(String.valueOf(KBTriggerType.AccMotion), KBCfgTriggerMotion.class);
         kbCfgTriggerObjects.put(String.valueOf(KBTriggerType.TriggerNull), KBCfgTrigger.class);
         kbCfgTriggerObjects.put(String.valueOf(KBTriggerType.BtnLongPress), KBCfgTrigger.class);
@@ -57,7 +59,7 @@ public class KBCfgHandler {
         kbCfgTriggerObjects.put(String.valueOf(KBTriggerType.LightLUXAbove), KBCfgTrigger.class);
         kbCfgTriggerObjects.put(String.valueOf(KBTriggerType.LightLUXBelow), KBCfgTrigger.class);
 
-        kbCfgSensorObjects = new HashMap<>(5);
+        kbCfgSensorObjects = new HashMap<>(10);
         kbCfgSensorObjects.put(String.valueOf(KBSensorType.HTHumidity), KBCfgSensorHT.class);
         kbCfgSensorObjects.put(String.valueOf(KBSensorType.Cutoff), KBCfgSensorBase.class);
         kbCfgSensorObjects.put(String.valueOf(KBSensorType.PIR), KBCfgSensorPIR.class);
