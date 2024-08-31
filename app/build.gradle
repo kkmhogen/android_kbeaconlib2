@@ -19,8 +19,8 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility "11"
+        targetCompatibility "11"
     }
 
     namespace = "com.kkmcn.sensordemo"
@@ -30,7 +30,8 @@ dependencies {
     implementation 'com.google.android.material:material:1.1.0'
     testImplementation 'junit:junit:4.+'
     androidTestImplementation 'androidx.test.ext:junit:1.1.2'
-    implementation project(path:':kbeaconlib2')
+    //implementation project(path:':kbeaconlib2')
+    implementation 'com.kkmcn.kbeaconlib2:kbeaconlib2:1.2.8'
     implementation 'no.nordicsemi.android:dfu:2.0.3'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'

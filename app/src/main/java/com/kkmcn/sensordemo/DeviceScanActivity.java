@@ -52,7 +52,7 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 
 /**
- * Activity for scanning and displaying available Bluetooth LE devices.
+ * Activity for  scanning and displaying available Bluetooth LE devices.
  */
 public class DeviceScanActivity extends AppBaseActivity implements AdapterView.OnItemClickListener,
         KBeaconsMgr.KBeaconMgrDelegate, LeDeviceListAdapter.ListDataSource{

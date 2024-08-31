@@ -1,16 +1,12 @@
 package com.kkmcn.kbeaconlib2.KBCfgPackage;
 
-import android.content.Context;
-
-import com.kkmcn.kbeaconlib2.R;
-
-
 public class KBTriggerType {
     public static final int TriggerNull= 0;
 
     //motion sensor trigger
     public static final int AccMotion = 1;
     public static final int AccAngle = 2;
+
     //push button trigger
     public static final int BtnLongPress = 3;   //long press
     public static final int BtnSingleClick = 4;   //single tap
