@@ -3,10 +3,10 @@ package com.kkmcn.kbeaconlib2.KBSensorHistoryData;
 import com.kkmcn.kbeaconlib2.ByteConvert;
 import com.kkmcn.kbeaconlib2.KBCfgPackage.KBSensorType;
 
-public class KBRecordCutoff extends KBRecordBase {
+public class KBRecordAlarm extends KBRecordBase {
     public long utcTime;
 
-    public byte cutoffFlag;   // bit 0: is cutoff enable, bit 1: is device was unplug
+    public byte alarmStatus;
 
     public static int CUT_OFF_RECORD_LEN = 5;
 
@@ -18,7 +18,7 @@ public class KBRecordCutoff extends KBRecordBase {
     @Override
     public int getSenorType()
     {
-        return KBSensorType.Cutoff;
+        return KBSensorType.Alarm;
     }
 
     @Override
@@ -33,7 +33,7 @@ public class KBRecordCutoff extends KBRecordBase {
         }
         nRecordPtr += 4;
 
-        cutoffFlag = sensorDataRsp[nRecordPtr];
+        alarmStatus = sensorDataRsp[nRecordPtr];
         nRecordPtr += 1;
 
         return true;

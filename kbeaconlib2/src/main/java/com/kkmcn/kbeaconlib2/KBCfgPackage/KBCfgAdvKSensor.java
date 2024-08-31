@@ -15,6 +15,7 @@ public class KBCfgAdvKSensor extends KBCfgAdvBase{
     public static final String JSON_FIELD_SENSOR_VOC = "voc";
     public static final String JSON_FIELD_SENSOR_CO2 = "co2";
     public static final String JSON_FIELD_RECORD_COUNT = "rcd";
+    public static final String JSON_FIELD_SENSOR_GEO = "mag";
 
     private Boolean htSensorInclude;
     private Boolean axisSensorInclude;
@@ -23,6 +24,7 @@ public class KBCfgAdvKSensor extends KBCfgAdvBase{
     private Boolean vocSensorInclude;
     private Boolean co2SensorInclude;
     private Boolean recordInclude;
+    private Boolean geoSensorInclude;
 
     public KBCfgAdvKSensor()
     {
@@ -90,6 +92,14 @@ public class KBCfgAdvKSensor extends KBCfgAdvBase{
         return advChanelMask;
     }
 
+    public Boolean isGeoSensorInclude() {
+        return geoSensorInclude;
+    }
+
+    public void setGeoSensorInclude(Boolean geoSensorInclude) {
+        this.geoSensorInclude = geoSensorInclude;
+    }
+
     public int updateConfig(JSONObject dicts) throws JSONException
     {
         int nUpdateConfigNum = super.updateConfig(dicts);
@@ -142,7 +152,11 @@ public class KBCfgAdvKSensor extends KBCfgAdvBase{
             nUpdateConfigNum++;
         }
 
-
+        //adv mag
+        if (dicts.has(JSON_FIELD_SENSOR_GEO)) {
+            geoSensorInclude =  (dicts.getInt(JSON_FIELD_SENSOR_GEO) > 0);
+            nUpdateConfigNum++;
+        }
         return nUpdateConfigNum;
     }
 
@@ -188,6 +202,11 @@ public class KBCfgAdvKSensor extends KBCfgAdvBase{
         //channel mask
         if (advChanelMask != null){
             configDicts.put(JSON_FIELD_CHANNEL_MASK, advChanelMask);
+        }
+
+        if (geoSensorInclude != null)
+        {
+            configDicts.put(JSON_FIELD_SENSOR_GEO, geoSensorInclude ? 1: 0);
         }
 
         return configDicts;

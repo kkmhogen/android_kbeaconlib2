@@ -1,8 +1,8 @@
 # android_kbeaconlib2
 ## Requirements
 Development environment:  
-Android 5.1  
-minSdkVersion 21
+Android 14  
+minSdkVersion 23
 
 ## Installation
 

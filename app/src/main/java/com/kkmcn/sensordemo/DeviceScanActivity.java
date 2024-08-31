@@ -32,6 +32,7 @@ import android.widget.ListView;
 
 import com.kkmcn.kbeaconlib2.KBAdvPackage.KBAccSensorValue;
 import com.kkmcn.kbeaconlib2.KBAdvPackage.KBAdvPacketBase;
+import com.kkmcn.kbeaconlib2.KBAdvPackage.KBAdvPacketEBeacon;
 import com.kkmcn.kbeaconlib2.KBAdvPackage.KBAdvPacketEddyTLM;
 import com.kkmcn.kbeaconlib2.KBAdvPackage.KBAdvPacketEddyUID;
 import com.kkmcn.kbeaconlib2.KBAdvPackage.KBAdvPacketEddyURL;
@@ -219,9 +220,9 @@ public class DeviceScanActivity extends AppBaseActivity implements AdapterView.O
                             Log.v(LOG_TAG, "Sensor humidity:" + advSensor.getHumidity());
                         }
 
-                        //device that has cutoff sensor
-                        if (advSensor.getWatchCutoff() != null) {
-                            Log.v(LOG_TAG, "cutoff flag:" + advSensor.getWatchCutoff());
+                        //device that has alarm sensor(cutoff, door, parking sensor)
+                        if (advSensor.getAlarmStatus() != null) {
+                            Log.v(LOG_TAG, "alarm flag:" + advSensor.getAlarmStatus());
                         }
 
                         //device that has PIR sensor
@@ -255,6 +256,16 @@ public class DeviceScanActivity extends AppBaseActivity implements AdapterView.O
                         Log.v(LOG_TAG, "System model:" + advSystem.getModel());
                         Log.v(LOG_TAG, "System batt:" + advSystem.getBatteryPercent());
                         Log.v(LOG_TAG, "System ver:" + advSystem.getVersion());
+                        break;
+                    }
+
+                    //encrypt beacon
+                    case KBAdvType.EBeacon: {
+                        KBAdvPacketEBeacon encryptAdv = (KBAdvPacketEBeacon) advPacket;
+                        Log.v(LOG_TAG, "System mac:" + encryptAdv.getMac());
+                        Log.v(LOG_TAG, "Decrypt UUID:" + encryptAdv.getUuid());
+                        Log.v(LOG_TAG, "ADV UTC:" + encryptAdv.getUtcSecCount());
+                        Log.v(LOG_TAG, "Reference power:" + encryptAdv.getRefTxPower());
                         break;
                     }
 

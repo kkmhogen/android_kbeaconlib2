@@ -35,6 +35,7 @@ public class KBAdvPacketHandler {
         kbAdvPacketTypeObjects.put(String.valueOf(KBAdvType.IBeacon), KBAdvPacketIBeacon.class);
         kbAdvPacketTypeObjects.put(String.valueOf(KBAdvType.System), KBAdvPacketSystem.class);
         kbAdvPacketTypeObjects.put(String.valueOf(KBAdvType.AOA), KBAdvPacketAOA.class);
+        kbAdvPacketTypeObjects.put(String.valueOf(KBAdvType.EBeacon), KBAdvPacketEBeacon.class);
     }
 
     public KBAdvPacketHandler()
@@ -69,7 +70,7 @@ public class KBAdvPacketHandler {
         this.mAdvPackets.clear();
     }
 
-    public boolean parseAdvPacket(ScanRecord record, int rssi, String name) {
+    public boolean parseAdvPacket(ScanRecord record, int rssi, String mac, String pwd) {
         int nAdvType = KBAdvType.AdvNull;
         byte[] beaconData = null;
         boolean bParseDataRslt = false;
@@ -82,15 +83,21 @@ public class KBAdvPacketHandler {
                     nAdvType = KBAdvType.IBeacon;
                 }
             }
-            else
-            {
+            else {
                 beaconData = record.getManufacturerSpecificData(KBUtility.KKM_MANUFACTURE_ID);
                 if (beaconData != null) {
                     if (beaconData[0] == 0x21 && beaconData.length >= MIN_SENSOR_ADV_LEN) {
                         nAdvType = KBAdvType.Sensor;
-                    }else if (beaconData[0] == 0x22 && beaconData.length >= MIN_SYSTEM_ADV_LEN) {
+                    } else if (beaconData[0] == 0x22 && beaconData.length >= MIN_SYSTEM_ADV_LEN) {
                         nAdvType = KBAdvType.System;
-                    } else if (beaconData[0] == 0x4) {
+                    } else if (beaconData[0] == 0x03) {
+                        nAdvType = KBAdvType.EBeacon;
+                    } else if (beaconData[0] == 0x04) {
+                        nAdvType = KBAdvType.AOA;
+                    }
+                } else  {
+                    beaconData = record.getManufacturerSpecificData(KBUtility.OTHER_MANUFACTURE_ID);
+                    if (beaconData != null && beaconData[0] == 0x04) {
                         nAdvType = KBAdvType.AOA;
                     }
                 }
@@ -115,14 +122,14 @@ public class KBAdvPacketHandler {
                 }
             }
         }
-        if ((filterAdvType & nAdvType) == 0)
+        if (beaconData == null || (filterAdvType > 0 && (filterAdvType & nAdvType) == 0) )
         {
             return false;
         }
 
         byte[] byExtenData = record.getServiceData(KBUtility.PARCE_UUID_EXT_DATA);
         if (byExtenData != null && byExtenData.length > 2) {
-            batteryPercent = (int) (byExtenData[0] & 0xFF);
+            batteryPercent = (byExtenData[0] & 0xFF);
             if (batteryPercent > 100){
                 batteryPercent = 100;
             }
@@ -131,6 +138,7 @@ public class KBAdvPacketHandler {
         if (nAdvType != KBAdvType.AdvNull) {
             String strAdvTypeKey = String.valueOf(nAdvType);
             KBAdvPacketBase advPacket = mAdvPackets.get(strAdvTypeKey);
+
             boolean bNewObj = false;
             if (advPacket == null) {
                 Class classNewObj = kbAdvPacketTypeObjects.get(strAdvTypeKey);
@@ -138,16 +146,21 @@ public class KBAdvPacketHandler {
                     if (classNewObj != null) {
                         advPacket = (KBAdvPacketBase) classNewObj.newInstance();
                     }
-                } catch (Exception excpt) {
-                    excpt.printStackTrace();
+                } catch (Exception except) {
+                    except.printStackTrace();
                     Log.e(LOG_TAG, "create adv packet class failed");
                     return false;
                 }
                 bNewObj = true;
             }
-
-            if (advPacket != null && advPacket.parseAdvPacket(beaconData)) {
-                advPacket.updateBasicInfo(rssi);
+            if (advPacket == null){
+                return false;
+            }
+            advPacket.updateBasicInfo(rssi,mac);
+            if (nAdvType == KBAdvType.EBeacon){
+                ((KBAdvPacketEBeacon)advPacket).setPassword(pwd);
+            }
+            if (advPacket.parseAdvPacket(beaconData)) {
                 if (bNewObj) {
                     mAdvPackets.put(strAdvTypeKey, advPacket);
                 }

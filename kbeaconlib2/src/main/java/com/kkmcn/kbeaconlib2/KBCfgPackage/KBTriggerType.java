@@ -1,5 +1,10 @@
 package com.kkmcn.kbeaconlib2.KBCfgPackage;
 
+import android.content.Context;
+
+import com.kkmcn.kbeaconlib2.R;
+
+
 public class KBTriggerType {
     public static final int TriggerNull= 0;
 
@@ -30,8 +35,11 @@ public class KBTriggerType {
     public static final int LightLUXAbove = 14;   //light lux above
     public static final int LightLUXBelow = 15;   //light lux below
 
+    //PeriodicallyEvent
+    public static final int PeriodicallyEvent = 20;
 
     //acc axis position report
     public static final int AccPositionReport = 60;
+
 
 }

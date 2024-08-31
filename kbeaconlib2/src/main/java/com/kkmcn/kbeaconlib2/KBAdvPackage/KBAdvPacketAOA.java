@@ -2,8 +2,6 @@ package com.kkmcn.kbeaconlib2.KBAdvPackage;
 
 import android.annotation.SuppressLint;
 
-import com.kkmcn.kbeaconlib2.KBUtility;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;

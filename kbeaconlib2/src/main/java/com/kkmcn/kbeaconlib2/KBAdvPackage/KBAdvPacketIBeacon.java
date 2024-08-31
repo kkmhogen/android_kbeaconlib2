@@ -10,7 +10,7 @@ public class KBAdvPacketIBeacon extends KBAdvPacketBase{
 
     private String uuid;
 
-    private Integer refTxPower;
+    private Integer refTxPower = -59;
 
     public Integer getMajorID()
     {
@@ -30,7 +30,6 @@ public class KBAdvPacketIBeacon extends KBAdvPacketBase{
     public Integer getRefTxPower() {
         return refTxPower;
     }
-
 
     public int getAdvType()
     {

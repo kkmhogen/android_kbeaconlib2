@@ -20,9 +20,9 @@ public class KBCfgHandler {
 
     //configuration read from device
     private KBCfgCommon kbDeviceAdvCommonPara;
-    private ArrayList<KBCfgAdvBase> kbDeviceCfgAdvSlotLists;
-    private ArrayList<KBCfgTrigger> kbDeviceCfgTriggerLists;
-    private ArrayList<KBCfgSensorBase> kbDeviceCfgSensorLists;
+    private final ArrayList<KBCfgAdvBase> kbDeviceCfgAdvSlotLists;
+    private final ArrayList<KBCfgTrigger> kbDeviceCfgTriggerLists;
+    private final ArrayList<KBCfgSensorBase> kbDeviceCfgSensorLists;
 
     //object creation factory
     private final static HashMap<String, Class> kbCfgAdvObjects;
@@ -40,6 +40,7 @@ public class KBCfgHandler {
         kbCfgAdvObjects.put(String.valueOf(KBAdvType.IBeacon), KBCfgAdvIBeacon.class);
         kbCfgAdvObjects.put(String.valueOf(KBAdvType.System), KBCfgAdvSystem.class);
         kbCfgAdvObjects.put(String.valueOf(KBAdvType.AOA), KBCfgAdvAOA.class);
+        kbCfgAdvObjects.put(String.valueOf(KBAdvType.EBeacon), KBCfgAdvEBeacon.class);
 
         kbCfgTriggerObjects = new HashMap<>(20);
         kbCfgTriggerObjects.put(String.valueOf(KBTriggerType.AccAngle), KBCfgTriggerAngle.class);
@@ -58,15 +59,18 @@ public class KBCfgHandler {
         kbCfgTriggerObjects.put(String.valueOf(KBTriggerType.PIRBodyInfraredDetected), KBCfgTrigger.class);
         kbCfgTriggerObjects.put(String.valueOf(KBTriggerType.LightLUXAbove), KBCfgTrigger.class);
         kbCfgTriggerObjects.put(String.valueOf(KBTriggerType.LightLUXBelow), KBCfgTrigger.class);
+        kbCfgTriggerObjects.put(String.valueOf(KBTriggerType.PeriodicallyEvent), KBCfgTrigger.class);
 
         kbCfgSensorObjects = new HashMap<>(10);
         kbCfgSensorObjects.put(String.valueOf(KBSensorType.HTHumidity), KBCfgSensorHT.class);
-        kbCfgSensorObjects.put(String.valueOf(KBSensorType.Cutoff), KBCfgSensorBase.class);
+        kbCfgSensorObjects.put(String.valueOf(KBSensorType.Alarm), KBCfgSensorBase.class);
         kbCfgSensorObjects.put(String.valueOf(KBSensorType.PIR), KBCfgSensorPIR.class);
         kbCfgSensorObjects.put(String.valueOf(KBSensorType.AccMotion), KBCfgSensorAcc.class);
         kbCfgSensorObjects.put(String.valueOf(KBSensorType.Light), KBCfgSensorLight.class);
         kbCfgSensorObjects.put(String.valueOf(KBSensorType.VOC), KBCfgSensorVOC.class);
         kbCfgSensorObjects.put(String.valueOf(KBSensorType.CO2), KBCfgSensorCO2.class);
+        kbCfgSensorObjects.put(String.valueOf(KBSensorType.GEO), KBCfgSensorGEO.class);
+        kbCfgSensorObjects.put(String.valueOf(KBSensorType.SCAN), KBCfgSensorScan.class);
     }
 
     public final KBCfgAdvBase getDeviceSlotCfg(int nSlotIndex)

@@ -1,6 +1,5 @@
 package com.kkmcn.kbeaconlib2;
 
-import android.Manifest;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.bluetooth.BluetoothAdapter;
@@ -16,18 +15,17 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
-import com.kkmcn.kbeaconlib2.KBAdvPackage.KBAdvType;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@SuppressLint("MissingPermission")
 public class KBeaconsMgr {
     private final static String TAG = "beacon.KBeaconsMgr";
 
@@ -58,7 +56,7 @@ public class KBeaconsMgr {
 
     private Integer scanMinRssiFilter = -100;
 
-    private Context mContext;
+    private final Context mContext;
 
     private BluetoothManager mBluetoothManager;
     private BluetoothAdapter mBluetoothAdapter;
@@ -78,10 +76,8 @@ public class KBeaconsMgr {
 
     private boolean mIsScanning;
 
-    private long mLastScanTick;
-
+    @SuppressLint("StaticFieldLeak")
     private static KBeaconsMgr sharedStaticBeaconMgr = null;
-
 
     private final int MSG_NEW_DEVICE_FOUND = 201;
     private final int MSG_DELAY_ADV_REPORT = 202;
@@ -146,7 +142,6 @@ public class KBeaconsMgr {
 
         mIntentFilter = makeGattUpdateIntentFilter();
         mContext.registerReceiver(mReceiver, mIntentFilter);
-
         mCbAllBeacons = new HashMap<>(100);
 
         mCbKBeacons = new HashMap<>(50);
@@ -154,9 +149,6 @@ public class KBeaconsMgr {
         mCBNtfBeacons = new HashMap<>(10);
 
         mNPhoneCallback = new NPhoneScancallback();
-
-        advTypeFilter = KBAdvType.EddyTLM | KBAdvType.Sensor |
-                KBAdvType.IBeacon | KBAdvType.EddyUID | KBAdvType.EddyURL;
 
         return true;
     }
@@ -342,7 +334,6 @@ public class KBeaconsMgr {
             filterList.add(filter4.build());
 
             scaner.startScan(filterList, scanSetting.build(), mNPhoneCallback);
-            mLastScanTick = System.currentTimeMillis();
             mIsScanning = true;
 
             Log.e(TAG, "ble start scan success fully");
@@ -360,7 +351,6 @@ public class KBeaconsMgr {
         return mIsScanning;
     }
 
-    @SuppressLint("MissingPermission")
     public void stopScanning()
     {
         BluetoothLeScanner scaner = mBluetoothAdapter.getBluetoothLeScanner();
@@ -413,7 +403,7 @@ public class KBeaconsMgr {
         }
 
         public void onBatchScanResults(List< ScanResult > results) {
-            if (results.size() > 0){
+            if (!results.isEmpty()){
                 for(ScanResult rslt: results) {
                     onScanResult(10, rslt);
                 }
@@ -432,14 +422,17 @@ public class KBeaconsMgr {
 
     private void onDeviceFound(final ScanResult rslt) {
         int rssi = rslt.getRssi();
+        if (rssi > 20 || rssi < -100){
+            rssi = -100;
+        }
         if (rssi < scanMinRssiFilter) {
             return;
         }
 
         boolean bFilter = true;
         boolean bNameFilterEnable = true, bMacFilterEnable = true;
-        if (scanNameFilter != null && scanNameFilter.length() >= 1) {
-            @SuppressLint("MissingPermission") String strDevName = rslt.getDevice().getName();
+        if (scanNameFilter != null && !scanNameFilter.isEmpty()) {
+            String strDevName = rslt.getDevice().getName();
             if (strDevName != null){
                 if (nameFilterIgnoreCase)
                 {
@@ -459,7 +452,7 @@ public class KBeaconsMgr {
             bNameFilterEnable = false;
         }
 
-        if (advMacFilter != null && advMacFilter.length() >= 1)
+        if (advMacFilter != null && !advMacFilter.isEmpty())
         {
             String strAddress = rslt.getDevice().getAddress();
             if (strAddress != null){
@@ -484,7 +477,7 @@ public class KBeaconsMgr {
         mMsgHandler.sendMessage(msg);
     }
 
-    private Handler mMsgHandler = new Handler(new Handler.Callback() {
+    private final Handler mMsgHandler = new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(Message msg) {
             switch (msg.what) {
@@ -532,7 +525,6 @@ public class KBeaconsMgr {
         if (record == null) {
             return;
         }
-        String strDevName = record.getDeviceName();
 
         KBeacon pUnknownBeacon = null;
         boolean bParseAdvData = false;
@@ -543,8 +535,7 @@ public class KBeaconsMgr {
                 pUnknownBeacon.setAdvTypeFilter(advTypeFilter);
                 mCbAllBeacons.put(strMacAddress, pUnknownBeacon);
             }
-
-            bParseAdvData = pUnknownBeacon.parseAdvPacket(record, rssi, strDevName);
+            bParseAdvData = pUnknownBeacon.parseAdvPacket(record, rssi);
         }
 
         if (bParseAdvData) {

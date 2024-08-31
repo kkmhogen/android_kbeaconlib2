@@ -40,14 +40,23 @@ public class KBErrorCode
     public static final int CfgSubErrorSlotUsedByTrigger = 0x109;
 
     //This type advertisement can only be single instance
-    public static final int CfgSubErrorAdvTypeDuplicate = 0x110;
+    public static final int CfgSubErrorAdvTypeDuplicate = 0x10A;
 
     //the trigger was already enable
-    public static final int CfgSubErrorTriggerTypeDuplicate = 0x111;
+    public static final int CfgSubErrorTriggerTypeDuplicate = 0x10B;
 
-    //the request record No does not exist
-    public static final int CfgSubErrorRecordNotExist = 0x131;
+    //command is busy
+    public static final int CfgCmdBusy = 0x10C;
 
     //enable sensor failed
-    public static final int CfgSubErrorEnableSensorFailed = 0x135;
+    public static final int CfgSubErrorEnableSensorFailed = 0x116;
+
+    //trigger not supported
+    public static final int CfgSubErrorNotSupportTriggerFailed = 0x117;
+
+    //sensor not supported
+    public static final int CfgSubErrorNotSupportSensorFailed = 0x118;
+
+    //unknown message
+    public static final int CfgSubErrorNotSupportMsgFailed = 0x119;
 }

@@ -10,7 +10,7 @@ import java.util.HashMap;
 public class KBCfgTrigger extends KBCfgBase {
     //trigger adv time
     public static final int DEFAULT_TRIGGER_ADV_TIME = 30;
-    public static final int MIN_TRIGGER_ADV_TIME = 2;
+    public static final int MIN_TRIGGER_ADV_TIME = 1;
     public static final int MAX_TRIGGER_ADV_TIME = 7200;
     public static final float DEFAULT_TRIGGER_ADV_PERIOD = 400.0f;
     public static final int DEFAULT_TRIGGER_ADV_POWER = 0;
@@ -39,6 +39,10 @@ public class KBCfgTrigger extends KBCfgBase {
     //Light level
     public static final int MAX_LIGHT_LEVEL_VALUE = 65535;
     public static final int MIN_LIGHT_LEVEL_VALUE = 1;
+
+    //periodically event
+    public static final int MAX_PERIODICALLY_EVENT_VALUE = 43200000;
+    public static final int MIN_PERIODICALLY_EVENT_VALUE = 100;
 
     //motion
     public static final int DEFAULT_MOTION_SENSITIVITY = 0x2;   //default motion sensitive
@@ -142,7 +146,7 @@ public class KBCfgTrigger extends KBCfgBase {
     public boolean setTriggerAction(Integer nTriggerAction){
         int nTriggerActionMask = KBTriggerAction.ActionOff | KBTriggerAction.Advertisement
                 | KBTriggerAction.Alert | KBTriggerAction.Record
-                | KBTriggerAction.Vibration | KBTriggerAction.Report2App;
+                | KBTriggerAction.Vibration | KBTriggerAction.Report2App | KBTriggerAction.BLEScan;
         if (nTriggerAction == 0 || (nTriggerAction & nTriggerActionMask) > 0) {
             this.triggerAction = nTriggerAction;
             return true;

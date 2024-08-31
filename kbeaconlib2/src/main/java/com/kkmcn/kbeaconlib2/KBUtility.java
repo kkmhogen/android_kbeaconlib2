@@ -12,6 +12,7 @@ import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -23,6 +24,9 @@ public class KBUtility {
     public static final int APPLE_MANUFACTURE_ID = 0x004C;
 
     public static final int KKM_MANUFACTURE_ID = 0x0A53;
+
+    //other MANUFACTURE_ID
+    public static final int OTHER_MANUFACTURE_ID = 0x0D;
 
     public static final ParcelUuid PARCE_UUID_EDDYSTONE = ParcelUuid.fromString("0000FEAA-0000-1000-8000-00805f9b34fb");
 
@@ -63,12 +67,12 @@ public class KBUtility {
     }
 
     public static String bytesToHexString(byte[] src){
-        StringBuilder stringBuilder = new StringBuilder("");
-        if (src == null || src.length <= 0) {
+        StringBuilder stringBuilder = new StringBuilder();
+        if (src == null || src.length == 0) {
             return null;
         }
-        for (int i = 0; i < src.length; i++) {
-            int v = src[i] & 0xFF;
+        for (byte b : src) {
+            int v = b & 0xFF;
             String hv = Integer.toHexString(v);
             if (hv.length() < 2) {
                 stringBuilder.append(0);
@@ -150,9 +154,9 @@ public class KBUtility {
 
     public static String byteBuffer2String(ByteBuffer buffer)
     {
-        CharBuffer charBuffer = null;
+        CharBuffer charBuffer;
         try {
-            Charset charset = Charset.forName("UTF-8");
+            Charset charset = StandardCharsets.UTF_8;
             CharsetDecoder decoder = charset.newDecoder();
             charBuffer = decoder.decode(buffer);
             buffer.flip();
@@ -229,5 +233,21 @@ public class KBUtility {
         float fResult = (float)(combine / 256.0);
         BigDecimal bigTemp = new BigDecimal(fResult);
         return bigTemp.setScale(2,   BigDecimal.ROUND_HALF_UP).floatValue();
+    }
+
+    /**
+     * Parse a list of hex numbers and return a byte[]
+     * @param string String of hex numbers.
+     * @param separator Separator.
+     * @return A byte[] from hex numbers.
+     */
+    public static byte[] fromHex2Bytes(String string, Pattern separator) {
+        String[] parts = separator.split(string);
+        ByteBuffer buffer = ByteBuffer.allocate(parts.length);
+        for (String part : parts) {
+            int cp = Integer.parseInt(part, 16);
+            buffer.put((byte) cp);
+        }
+        return buffer.array();
     }
 }

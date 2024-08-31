@@ -1,6 +1,5 @@
 package com.kkmcn.kbeaconlib2;
 
-import android.Manifest;
 import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
@@ -11,8 +10,6 @@ import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothProfile;
 import android.bluetooth.le.ScanRecord;
 import android.content.Context;
-import android.content.pm.PackageManager;
-import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
@@ -52,7 +49,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
     private ConnStateDelegate delegate;
 
     //advertisement
-    private String mac;
+    private final String mac;
     private int rssi;
     private String name;
     private KBConnState state; //connection state
@@ -110,27 +107,28 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
     private final static int  BEACON_ACK_CAUSE_CMD_RCV = 0x5;
     private final static int  BEACON_ACK_EXE_CMD_CMP = 0x6;
     private final static int MAX_MTU_SIZE = 251;
-    private final static int MAX_BUFFER_DATA_SIZE = 1024;
+    private final static int MAX_BUFFER_DATA_SIZE = 4096;
 
-    private KBAuthHandler mAuthHandler;
+    private final KBAuthHandler mAuthHandler;
     private KBConnPara mConnPara;
 
     private int mCloseReason;
-    private KBAdvPacketHandler mAdvPacketMgr;
-    private KBRecordDataHandler mSensorRecordsMgr;
-    private KBCfgHandler mCfgMgr;
+    private final KBAdvPacketHandler mAdvPacketMgr;
+    private final KBRecordDataHandler mSensorRecordsMgr;
+    private final KBCfgHandler mCfgMgr;
     private String mPassword;
     private BluetoothDevice mBleDevice;
-    private Context mContext;
+    private final Context mContext;
     private final BluetoothGattCallback mGattCallback;
     private BluetoothGatt mGattConnection;
 
     //indication bluetooth device is busy
     private boolean mActionDoing;
 
-    private HashMap<Integer, NotifyDataDelegate> notifyData2ClassMap;
+    private final HashMap<Integer, NotifyDataDelegate> notifyData2ClassMap;
     private NotifyDataDelegate mToAddedSubscribeInstance = null;
     private Integer mToAddedTriggerType = 0;
+    private KBPreferenceMgr mPrefMgr = null;
 
     private enum ActionType
     {
@@ -146,7 +144,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         ACTION_DISABLE_NTF
     };
 
-    private class ActionCommand
+    private static class ActionCommand
     {
         ActionType actionType;
         Object actionCallback;
@@ -155,7 +153,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         int actionTimeout;
 
         int receiveDataLen;
-        private byte[] receiveData;
+        private final byte[] receiveData;
         ArrayList<KBCfgBase> toBeCfgData;
 
         public ActionCommand(ActionType type, int timeout)
@@ -214,6 +212,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         mAuthHandler = new KBAuthHandler(this);
         notifyData2ClassMap = new HashMap<>(10);
         mConnPara = new KBConnPara();
+        mPrefMgr = KBPreferenceMgr.shareInstance(mContext);
     }
 
     void setAdvTypeFilter(int nAdvTypeFilter)
@@ -244,7 +243,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
     }
 
     //get rssi
-    public Integer getRssi()
+    public int getRssi()
     {
         return rssi;
     }
@@ -373,15 +372,12 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         if (state == KBConnState.Disconnected && password.length() <= 16 && password.length() >= 8)
         {
             delegate = connectCallback;
-           if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M){
-               mGattConnection = mBleDevice.connectGatt(mContext, false, mGattCallback,BluetoothDevice.TRANSPORT_LE);
-           }else {
-               mGattConnection = mBleDevice.connectGatt(mContext, false, mGattCallback);
-           }
+            mGattConnection = mBleDevice.connectGatt(mContext, false, mGattCallback, BluetoothDevice.TRANSPORT_LE);
             Log.v(LOG_TAG, "start connect to device " + mac);
 
             mPassword = password;
             state = KBConnState.Connecting;
+            mPrefMgr.setSingleBeaconPassword(mac, password);
 
             //cancel action timer
             mActionDoing = false;
@@ -1582,12 +1578,12 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         mMsgHandler.sendEmptyMessageDelayed(MSG_START_EXECUTE_NEXT_MSG, 10);
     }
 
-    boolean parseAdvPacket(ScanRecord data, int nRssi, String strName)
+    boolean parseAdvPacket(ScanRecord data, int nRssi)
     {
-        name = strName;
+        name = data.getDeviceName();
         rssi = nRssi;
-
-        return mAdvPacketMgr.parseAdvPacket(data, rssi, strName);
+        String pwd = mPrefMgr.getSingleBeaconPassword(mac);
+        return mAdvPacketMgr.parseAdvPacket(data, rssi, mac, pwd);
     }
 
     private void handleJsonRptDataComplete()
@@ -1639,11 +1635,11 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
                 mCfgMgr.updateDeviceCfgFromJsonObject(mRspJason);
 
                 //check if has no read information
-                if (mActionList.size() > 0) {
+                if (!mActionList.isEmpty()) {
                     mMsgHandler.sendEmptyMessageDelayed(MSG_START_EXECUTE_NEXT_MSG, 10);
                 }else {
                     //change connection state
-                    if (isSupportSensorDataNotification() && notifyData2ClassMap.size() > 0) {
+                    if (isSupportSensorDataNotification() && !notifyData2ClassMap.isEmpty()) {
                         //enable indication for receive
                         mMsgHandler.sendEmptyMessageDelayed(MSG_NTF_IND_ENABLE, 100);
                     } else {

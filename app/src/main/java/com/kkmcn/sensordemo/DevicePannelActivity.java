@@ -22,6 +22,7 @@ import com.kkmcn.kbeaconlib2.KBCfgPackage.KBAdvTxPower;
 import com.kkmcn.kbeaconlib2.KBCfgPackage.KBCfgAdvBase;
 import com.kkmcn.kbeaconlib2.KBCfgPackage.KBCfgAdvIBeacon;
 import com.kkmcn.kbeaconlib2.KBCfgPackage.KBCfgSensorBase;
+import com.kkmcn.kbeaconlib2.KBCfgPackage.KBCfgSensorGEO;
 import com.kkmcn.kbeaconlib2.KBCfgPackage.KBCfgSensorHT;
 import com.kkmcn.kbeaconlib2.KBCfgPackage.KBCfgSensorLight;
 import com.kkmcn.kbeaconlib2.KBCfgPackage.KBCfgTrigger;
@@ -34,7 +35,7 @@ import com.kkmcn.kbeaconlib2.KBCfgPackage.KBTriggerAdvChgMode;
 import com.kkmcn.kbeaconlib2.KBCfgPackage.KBTriggerType;
 import com.kkmcn.kbeaconlib2.KBConnState;
 import com.kkmcn.kbeaconlib2.KBSensorHistoryData.KBRecordBase;
-import com.kkmcn.kbeaconlib2.KBSensorHistoryData.KBRecordCutoff;
+import com.kkmcn.kbeaconlib2.KBSensorHistoryData.KBRecordAlarm;
 import com.kkmcn.kbeaconlib2.KBSensorHistoryData.KBRecordDataRsp;
 import com.kkmcn.kbeaconlib2.KBSensorHistoryData.KBRecordHumidity;
 import com.kkmcn.kbeaconlib2.KBSensorHistoryData.KBRecordInfoRsp;
@@ -51,11 +52,12 @@ import com.kkmcn.kbeaconlib2.KBConnectionEvent;
 import com.kkmcn.kbeaconlib2.KBException;
 import com.kkmcn.kbeaconlib2.KBeacon;
 import com.kkmcn.kbeaconlib2.KBeaconsMgr;
-import org.json.JSONException;
-import org.json.JSONObject;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import androidx.core.app.ActivityCompat;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 public class DevicePannelActivity extends AppBaseActivity implements View.OnClickListener,
         KBeacon.ConnStateDelegate, KBeacon.NotifyDataDelegate{
@@ -1130,6 +1132,84 @@ public class DevicePannelActivity extends AppBaseActivity implements View.OnClic
                 });
     }
 
+    //set parking idle
+    //Parking sensors need to be marked before use. That is, when there is no parking, we need to set
+    // the sensor to idle. The sensor detects if a vehicle is parked based on the status of the marker.
+    public void setParkingIdleParameters()
+    {
+        if (!mBeacon.isConnected())
+        {
+            toastShow("Device is not connected");
+            return;
+        }
+
+        //check device capability
+        KBCfgCommon oldCommonCfg = mBeacon.getCommonCfg();
+        if (oldCommonCfg != null && !oldCommonCfg.isSupportGEOSensor())
+        {
+            toastShow("Device does not supported parking sensors");
+            return;
+        }
+
+        KBCfgSensorGEO sensorGeoPara = new KBCfgSensorGEO();
+
+        //If this parameter is set to true, the sensor initiates the measurement
+        // and sets the current state to the idle parking state.
+        sensorGeoPara.setParkingTag(true);
+
+        //enable sensor advertisement
+        mBeacon.modifyConfig(sensorGeoPara, (bConfigSuccess, error) -> {
+            if (bConfigSuccess)
+            {
+                toastShow("config data to beacon success");
+            }
+        });
+    }
+
+    //set parking sensor measure parameters
+    public void setParkingSensorMeasureParameters()
+    {
+        if (!mBeacon.isConnected())
+        {
+            toastShow("Device is not connected");
+            return;
+        }
+
+        //check device capability
+        KBCfgCommon oldCommonCfg = mBeacon.getCommonCfg();
+        if (oldCommonCfg != null && !oldCommonCfg.isSupportGEOSensor())
+        {
+            toastShow("Device does not supported parking sensors");
+            return;
+        }
+
+        KBCfgSensorGEO sensorGeoPara = new KBCfgSensorGEO();
+
+        //Set the geomagnetic offset value of the parking space occupancy relative to the idle parking space
+        //unit is mg
+        sensorGeoPara.setParkingThreshold(2000);
+
+        //If the setting continuously detects geomagnetic changes for more than 50 seconds,
+        //the device will generate a parking space occupancy event. the Delay unit is 10 seconds
+        sensorGeoPara.setParkingDelay(5);
+
+        //enable sensor advertisement
+        mBeacon.modifyConfig(sensorGeoPara, new KBeacon.ActionCallback() {
+            @Override
+            public void onActionComplete(boolean bConfigSuccess, KBException error) {
+                if (bConfigSuccess)
+                {
+                    toastShow("config data to beacon success");
+                }
+                else
+                {
+                    toastShow("config failed for error:" + error.errorCode);
+                }
+            }
+        });
+    }
+
+
     //set disable period parameters
     public void setPIRDisablePeriod() {
         if (!mBeacon.isConnected()) {
@@ -1303,7 +1383,7 @@ public class DevicePannelActivity extends AppBaseActivity implements View.OnClic
 
     public void readCutoffHistoryInfoExample()
     {
-        mBeacon.readSensorDataInfo(KBSensorType.Cutoff, new KBeacon.ReadSensorInfoCallback() {
+        mBeacon.readSensorDataInfo(KBSensorType.Alarm, new KBeacon.ReadSensorInfoCallback() {
             @Override
             public void onReadComplete(boolean b, KBRecordInfoRsp infRsp, KBException e) {
                 if (b){
@@ -1413,7 +1493,7 @@ public class DevicePannelActivity extends AppBaseActivity implements View.OnClic
     //read door open/close history records
     public void readCutoffHistoryRecordExample()
     {
-        mBeacon.readSensorRecord(KBSensorType.Cutoff,
+        mBeacon.readSensorRecord(KBSensorType.Alarm,
                 KBRecordDataRsp.INVALID_DATA_RECORD_POS, //set to INVALID_DATA_RECORD_POS
                 KBSensorReadOption.NewRecord,  //read direction type
                 100,   //number of records the app want to read
@@ -1425,9 +1505,9 @@ public class DevicePannelActivity extends AppBaseActivity implements View.OnClic
                         {
                             for (KBRecordBase sensorRecord: dataRsp.readDataRspList)
                             {
-                                KBRecordCutoff record = (KBRecordCutoff)sensorRecord;
+                                KBRecordAlarm record = (KBRecordAlarm)sensorRecord;
                                 Log.v(LOG_TAG, "record utc time:" + record.utcTime);
-                                Log.v(LOG_TAG, "record cut off Flag:" + record.cutoffFlag);
+                                Log.v(LOG_TAG, "record alarm Flag:" + record.alarmStatus);
                             }
                             if (dataRsp.readDataNextPos == KBRecordDataRsp.INVALID_DATA_RECORD_POS)
                             {

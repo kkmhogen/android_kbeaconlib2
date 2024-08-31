@@ -27,8 +27,8 @@ public class KBAuthHandler {
     private final static int AUTH_FACTOR_ID_1 = 0xA9;
     private final static int AUTH_FACTOR_ID_2 = 0xB1;
 
-    private byte mAuthPhase1AppRandom[];
-    private byte mAuthDeviceMac[];
+    private byte[] mAuthPhase1AppRandom;
+    private byte[] mAuthDeviceMac;
     private String mPassword;
     private Integer mtuSize;
     private KBConnPara mConnPara;
@@ -59,7 +59,7 @@ public class KBAuthHandler {
     boolean authSendMd5Request(String macAddress, String password) {
         String strMacAddress = macAddress.replace(":", "");
 
-        byte macData[] = KBUtility.hexStringToBytes(strMacAddress);
+        byte[] macData = KBUtility.hexStringToBytes(strMacAddress);
         if (macData.length != 6) {
             Log.e(LOG_TAG, "mac address or password length failed");
             return false;
@@ -71,7 +71,7 @@ public class KBAuthHandler {
         }
         mPassword = password;
 
-        byte authRequest[];
+        byte[] authRequest;
         if (mConnPara != null && mConnPara.syncUtcTime)
         {
             authRequest = new byte[10];
@@ -81,7 +81,7 @@ public class KBAuthHandler {
             authRequest[nIndex++] = (byte)((utcTime >> 24) & 0xFF);
             authRequest[nIndex++] = (byte)((utcTime >> 16) & 0xFF);
             authRequest[nIndex++] = (byte)((utcTime >> 8) & 0xFF);
-            authRequest[nIndex++] = (byte)(utcTime & 0xFF);
+            authRequest[nIndex] = (byte)(utcTime & 0xFF);
         }else{
             authRequest = new byte[6];
         }
@@ -112,16 +112,16 @@ public class KBAuthHandler {
             byte[] byPhase1Data = new byte[byRcvNtfValue.length - 1];
             System.arraycopy(byRcvNtfValue, 1, byPhase1Data, 0, byRcvNtfValue.length - 1);
             if (!authHandlePhase1Response(byPhase1Data, byRcvNtfValue[0] == AUTH_MIN_MTU_ALOGRIM_PH1)) {
-                Log.e(LOG_TAG, "app auth with device failed:" + mAuthDeviceMac);
+                Log.e(LOG_TAG, "app auth with device failed:" + Arrays.toString(mAuthDeviceMac));
                 delegate.authStateChange(Failed);
             }else{
-                Log.e(LOG_TAG, "app auth phase1 success:" + mAuthDeviceMac);
+                Log.e(LOG_TAG, "app auth phase1 success:" + Arrays.toString(mAuthDeviceMac));
             }
         } else if (byRcvNtfValue[0] == AUTH_PHASE2_DEV) {
             if (byRcvNtfValue.length >= 2) {
                 mtuSize = (byRcvNtfValue[1] & 0xFF) - MTU_SIZE_HEAD;
             }
-            Log.e(LOG_TAG, "app auth phase2 success:" + mAuthDeviceMac);
+            Log.e(LOG_TAG, "app auth phase2 success:" + Arrays.toString(mAuthDeviceMac));
             this.delegate.authStateChange(Success);
         }else if ((byRcvNtfValue[0] & 0xFF) == AUTH_RETURN_FAIL){
             delegate.authStateChange(Failed);
@@ -129,7 +129,7 @@ public class KBAuthHandler {
     }
 
     boolean authHandlePhase1Response(byte[] byRcvNtfValue, boolean isShortMtu) {
-        byte nFactorID[] = new byte[2];
+        byte[] nFactorID = new byte[2];
         nFactorID[0] = (byte) (AUTH_FACTOR_ID_1 & 0xFF);
         nFactorID[1] = (byte) (AUTH_FACTOR_ID_2 & 0xFF);
 
@@ -162,7 +162,7 @@ public class KBAuthHandler {
             Log.e(LOG_TAG, "not found password");
             return false;
         }
-        byte[] nsPasswordData = null;
+        byte[] nsPasswordData;
         try {
             nsPasswordData = mPassword.getBytes(StandardCharsets.UTF_8);
 
@@ -208,7 +208,7 @@ public class KBAuthHandler {
             byAuth2DevMd5Result = md.digest();
 
             //send auth2 md5 response
-            byte authRequest[];
+            byte[] authRequest;
             if (isShortMtu)
             {
                 authRequest = new byte[10];
@@ -224,10 +224,7 @@ public class KBAuthHandler {
                 authRequest = new byte[18];
                 authRequest[0] = 0x13;
                 authRequest[1] = AUTH_PHASE2_DEV;
-                for (int i = 0; i < 16; i++)
-                {
-                    authRequest[i+2] = byAuth2DevMd5Result[i];
-                }
+                System.arraycopy(byAuth2DevMd5Result, 0, authRequest, 2, 16);
             }
 
 

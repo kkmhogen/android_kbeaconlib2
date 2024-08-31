@@ -10,6 +10,13 @@ public class KBAdvPacketBase {
 
     private Long lastReceiveTime;
 
+    private String mac;
+
+    public int getAdvType()
+    {
+        return KBAdvType.AdvNull;
+    }
+
     public Integer getRssi()
     {
         return rssi;
@@ -29,20 +36,23 @@ public class KBAdvPacketBase {
         }
     }
 
+    public String getMac() {
+        return mac;
+    }
+
+    public void setMac(String mac) {
+        this.mac = mac;
+    }
+
     public boolean parseAdvPacket(byte[] data)
     {
         lastReceiveTime = System.currentTimeMillis();
-
         return true;
     }
 
-    void updateBasicInfo(int nRssi)
+    void updateBasicInfo(int nRssi, String macAddress)
     {
         rssi = nRssi;
-    }
-
-    public int getAdvType()
-    {
-        return KBAdvType.AdvNull;
+        mac = macAddress;
     }
 }

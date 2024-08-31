@@ -1,13 +1,11 @@
 package com.kkmcn.kbeaconlib2.KBCfgPackage;
 
-import com.kkmcn.kbeaconlib2.KBException;
 import com.kkmcn.kbeaconlib2.KBAdvPackage.KBAdvType;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 
 public class KBCfgCommon extends KBCfgBase{
     public final static int  KB_CAPABILITY_KEY = 0x1;
@@ -18,8 +16,8 @@ public class KBCfgCommon extends KBCfgBase{
 
     public final static int MAX_NAME_LENGTH = 18;
 
-    public final static int MIN_REFERENCE_POWER = -100;
-    public final static int MAX_REFERENCE_POWER = 10;
+    public final static int MIN_REFERENCE_POWER = -80;
+    public final static int MAX_REFERENCE_POWER = 0;
     public final static float MIN_ADV_PERIOD_MS = 100.0f;
     public final static float MAX_ADV_PERIOD_MS = 20000.0f;
 
@@ -48,9 +46,9 @@ public class KBCfgCommon extends KBCfgBase{
     public final static String JSON_FIELD_IDENTIFY = "id";
 
     //flash led interval
-    public final static String  JSON_FIELD_BLINK_LED_INTERVAL = "led";
+    public final static String  JSON_FIELD_BLINK_LED_INTERVAL = "nBlk";
     //low battery flash only
-    public final static String  JSON_FIELD_LED_BLINK_ONLY_IN_LOW_BATTERY = "lwBlk";
+    public final static String  JSON_FIELD_LED_BLINK_ONLY_IN_LOW_BATTERY = "lBlk";
 
     //support adv slot number
     private Integer maxAdvSlot;
@@ -90,8 +88,8 @@ public class KBCfgCommon extends KBCfgBase{
     private Boolean alwaysPowerOn;
 
     //led flash when power on
-    private Integer alwaysLedBlinkInterval;
-    private Boolean lowBatteryLedBlinkOnly;
+    private Integer normalLedBlinkInterval;
+    private Integer lowLedBlinkInterval;
 
     public Integer getMaxAdvSlot()
     {
@@ -171,6 +169,13 @@ public class KBCfgCommon extends KBCfgBase{
         return (nBALE5Capability & 0x8) > 0;
     }
 
+    //support Flash record
+    public boolean isSupportFlashRecord()
+    {
+        int nBALE5Capability = (basicCapability >> 16);
+        return (nBALE5Capability & 0x10) > 0;
+    }
+
     //support kb system adv
     public boolean isSupportKBSystem()
     {
@@ -182,6 +187,12 @@ public class KBCfgCommon extends KBCfgBase{
     {
         int nAdvCapability = (basicCapability >> 8);
         return ((nAdvCapability >> (KBAdvType.AOA -1)) & 0x1) > 0;
+    }
+
+    public boolean isSupportEBeacon()
+    {
+        int nAdvCapability = (basicCapability >> 8);
+        return ((nAdvCapability >> (KBAdvType.EBeacon -1)) & 0x1) > 0;
     }
 
     //is support button
@@ -244,6 +255,18 @@ public class KBCfgCommon extends KBCfgBase{
         return ((basicCapability & 0x1000000) > 0);
     }
 
+    //is support geo sensor
+    public boolean isSupportGEOSensor()
+    {
+        return ((basicCapability & 0x2000000) > 0);
+    }
+
+    //is support scan sensor
+    public boolean isSupportScanSensor()
+    {
+        return ((basicCapability & 0x4000000) > 0);
+    }
+
     //is support trigger
     public boolean isSupportTrigger(int nTriggerType)
     {
@@ -298,12 +321,12 @@ public class KBCfgCommon extends KBCfgBase{
         return name;
     }
 
-    public Integer getAlwaysLedBlinkInterval() {
-        return alwaysLedBlinkInterval;
+    public Integer getNormalLedBlinkInterval() {
+        return normalLedBlinkInterval;
     }
 
-    public Boolean isLowBatteryBlinkOnly(){
-        return lowBatteryLedBlinkOnly;
+    public Integer getLowLedBlinkInterval(){
+        return lowLedBlinkInterval;
     }
 
 
@@ -330,7 +353,7 @@ public class KBCfgCommon extends KBCfgBase{
     }
 
     public boolean setRefPower1Meters( Integer nRefPower1Meters) {
-        if (nRefPower1Meters < -10 && nRefPower1Meters > -100) {
+        if (nRefPower1Meters <= MAX_REFERENCE_POWER && nRefPower1Meters >= MIN_REFERENCE_POWER) {
             refPower1Meters = nRefPower1Meters;
             return true;
         } else {
@@ -360,12 +383,12 @@ public class KBCfgCommon extends KBCfgBase{
         }
     }
 
-    public void setAlwaysFlashLedInterval(Integer alwaysFlashLedInterval) {
-        this.alwaysLedBlinkInterval = alwaysFlashLedInterval;
+    public void setNormalLedBlinkInterval(Integer alwaysFlashLedInterval) {
+        this.normalLedBlinkInterval = alwaysFlashLedInterval;
     }
 
-    public void setLowBatteryLedBlinkOnly(Boolean lowBatteryFlash) {
-        this.lowBatteryLedBlinkOnly = lowBatteryFlash;
+    public void setLowLedBlinkInterval(Integer lowBatteryFlash) {
+        this.lowLedBlinkInterval = lowBatteryFlash;
     }
 
     public void setAlwaysPowerOn(Boolean nAutoAdvAfterPowerOn) {
@@ -464,12 +487,12 @@ public class KBCfgCommon extends KBCfgBase{
 
         //always led flash
         if (dicts.has(JSON_FIELD_BLINK_LED_INTERVAL)) {
-            alwaysLedBlinkInterval =  (Integer) dicts.get(JSON_FIELD_BLINK_LED_INTERVAL);
+            normalLedBlinkInterval =  (Integer) dicts.get(JSON_FIELD_BLINK_LED_INTERVAL);
             nUpdateParaNum++;
         }
 
         if (dicts.has(JSON_FIELD_LED_BLINK_ONLY_IN_LOW_BATTERY)) {
-            lowBatteryLedBlinkOnly = (Integer) dicts.get(JSON_FIELD_LED_BLINK_ONLY_IN_LOW_BATTERY) > 0;
+            lowLedBlinkInterval = (Integer) dicts.get(JSON_FIELD_LED_BLINK_ONLY_IN_LOW_BATTERY);
             nUpdateParaNum++;
         }
 
@@ -501,12 +524,12 @@ public class KBCfgCommon extends KBCfgBase{
         }
 
         //is always flash led
-        if (alwaysLedBlinkInterval != null){
-            configDicts.put(JSON_FIELD_BLINK_LED_INTERVAL, alwaysLedBlinkInterval);
+        if (normalLedBlinkInterval != null){
+            configDicts.put(JSON_FIELD_BLINK_LED_INTERVAL, normalLedBlinkInterval);
         }
 
-        if (lowBatteryLedBlinkOnly != null){
-            configDicts.put(JSON_FIELD_LED_BLINK_ONLY_IN_LOW_BATTERY, lowBatteryLedBlinkOnly ? 1 : 0);
+        if (lowLedBlinkInterval != null){
+            configDicts.put(JSON_FIELD_LED_BLINK_ONLY_IN_LOW_BATTERY, lowLedBlinkInterval);
         }
 
         return configDicts;

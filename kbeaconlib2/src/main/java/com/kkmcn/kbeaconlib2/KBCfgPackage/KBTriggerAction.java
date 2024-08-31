@@ -8,4 +8,5 @@ public class KBTriggerAction {
     public static final int Record = 0x4;
     public static final int Vibration = 0x8;
     public static final int Report2App = 0x10;
+    public static final int BLEScan = 0x20;
 }

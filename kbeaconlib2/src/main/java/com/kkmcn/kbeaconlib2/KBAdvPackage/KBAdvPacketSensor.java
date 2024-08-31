@@ -10,7 +10,7 @@ public class KBAdvPacketSensor extends KBAdvPacketBase{
     private final  static int SENSOR_MASK_TEMP = 0x2;
     private final  static int SENSOR_MASK_HUME = 0x4;
     private final  static int SENSOR_MASK_ACC_AIX = 0x8;
-    private final  static int SENSOR_MASK_CUTOFF = 0x10;
+    private final  static int SENSOR_MASK_ALARM = 0x10;
     private final  static int SENSOR_MASK_PIR = 0x20;
     private final  static int SENSOR_MASK_LUX = 0x40;
     private final  static int SENSOR_MASK_VOC = 0x80;
@@ -19,7 +19,7 @@ public class KBAdvPacketSensor extends KBAdvPacketBase{
 
     private KBAccSensorValue accSensor;
 
-    private Integer watchCutoff;
+    private Integer alarmStatus;
 
     private Integer pirIndication;
 
@@ -50,9 +50,9 @@ public class KBAdvPacketSensor extends KBAdvPacketBase{
         return accSensor;
     }
 
-    public Integer getWatchCutoff()
+    public Integer getAlarmStatus()
     {
-        return watchCutoff;
+        return alarmStatus;
     }
 
     public Float getTemperature()
@@ -154,6 +154,12 @@ public class KBAdvPacketSensor extends KBAdvPacketBase{
             Byte humHigh = beaconData[nSrvIndex++];
             Byte humLow = beaconData[nSrvIndex++];
             humidity = KBUtility.signedBytes2Float(humHigh, humLow);
+            if (humidity < 0) {
+                if(temperature != null){
+                  temperature = (-1 - humidity)*100 + temperature;
+                }
+                humidity = null;
+            }
         }else{
             humidity = null;
         }
@@ -181,13 +187,13 @@ public class KBAdvPacketSensor extends KBAdvPacketBase{
             accSensor = null;
         }
 
-        if ((nSensorMask & SENSOR_MASK_CUTOFF) > 0) {
+        if ((nSensorMask & SENSOR_MASK_ALARM) > 0) {
             if (nSrvIndex > (beaconData.length - 1)) {
                 return false;
             }
-            watchCutoff = (int)beaconData[nSrvIndex++];
+            alarmStatus = (int)beaconData[nSrvIndex++];
         }else{
-            watchCutoff = null;
+            alarmStatus = null;
         }
 
         if ((nSensorMask & SENSOR_MASK_PIR) > 0) {

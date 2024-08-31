@@ -12,7 +12,7 @@ public class KBCfgAdvEddyURL extends KBCfgAdvBase{
 
     public static final String JSON_FIELD_EDDY_URL_ADDR  = "url";
     public static final String DEFAULT_URL_ADDRESS = "https://www.google.com/";
-    public static int MAX_URL_LENGTH = 30;
+    public static int MAX_URL_LENGTH = 60;
 
     private String url;
 

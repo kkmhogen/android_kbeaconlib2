@@ -10,7 +10,7 @@ import java.util.HashMap;
 public class KBCfgAdvBase extends KBCfgBase{
     public final static Float DEFAULT_ADV_PERIOD = 1000.0f;
     public final static Float MIN_ADV_PERIOD = 100.0f;
-    public final static Float MAX_ADV_PERIOD = 20000.0f;
+    public final static Float MAX_ADV_PERIOD = 40000.0f;
 
     public final static Integer INVALID_SLOT_INDEX = 0xff;
 
@@ -124,7 +124,7 @@ public class KBCfgAdvBase extends KBCfgBase{
     //set adv period, the unit is ms
     public boolean setAdvPeriod(Float nAdvPeriod)
     {
-        if (nAdvPeriod >= MIN_ADV_PERIOD) {
+        if (nAdvPeriod >= MIN_ADV_PERIOD && nAdvPeriod <= MAX_ADV_PERIOD) {
             advPeriod = nAdvPeriod;
             return true;
         } else {

@@ -30,7 +30,7 @@ public class KBRecordDataHandler extends Object {
         kbSensorParserObjects.put(String.valueOf(KBSensorType.CO2), KBRecordCO2.class);
         kbSensorParserObjects.put(String.valueOf(KBSensorType.PIR), KBRecordPIR.class);
         kbSensorParserObjects.put(String.valueOf(KBSensorType.HTHumidity), KBRecordHumidity.class);
-        kbSensorParserObjects.put(String.valueOf(KBSensorType.Cutoff), KBRecordCutoff.class);
+        kbSensorParserObjects.put(String.valueOf(KBSensorType.Alarm), KBRecordAlarm.class);
         kbSensorParserObjects.put(String.valueOf(KBSensorType.Light), KBRecordLight.class);
     }
 
