@@ -37,4 +37,5 @@ dependencies {
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
 }
 
+//The script we use to publish to Maven. You can delete the following line.
 apply from: 'maven-push.gradle'
