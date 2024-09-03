@@ -184,86 +184,57 @@ public class DevicePannelActivity extends AppBaseActivity implements View.OnClic
     @Override
     public void onClick(View v)
     {
-        switch (v.getId()) {
-            case R.id.readBtnTriggerPara:
-                readButtonTriggerPara();
-                break;
-
-            case R.id.enableBtnAdvTrigger:
-                enableButtonTriggerEvent2Adv();
-                break;
-
-            case R.id.enableBtnAppTrigger:
-                enableButtonTriggerEvent2App();
-                break;
+        int id = v.getId();
+        if (id == R.id.readBtnTriggerPara) {
+            readButtonTriggerPara();
+        } else if (id == R.id.enableBtnAdvTrigger) {
+            enableButtonTriggerEvent2Adv();
+        } else if (id == R.id.enableBtnAppTrigger) {
+            enableButtonTriggerEvent2App();
 
 
             //acc trigger
-            case R.id.enableAccTrigger:
-                enableMotionTrigger();
-                break;
-
-            case R.id.disableAccAppTrigger:
-                disableMotionTrigger();
-                break;
+        } else if (id == R.id.enableAccTrigger) {
+            enableMotionTrigger();
+        } else if (id == R.id.disableAccAppTrigger) {
+            disableMotionTrigger();
 
             //ksensor advertisement
-            case R.id.enableAccAdvertisement:
-                enableAdvTypeIncludeAccXYZ();
-                break;
-
-            case R.id.enableTHAdvertisement:
-                enableAdvTypeIncludeAccTH();
-                break;
-
-            case R.id.viewTHDataHistory:
-                if (mBeacon.isConnected()) {
-                    KBCfgCommon commCfg = mBeacon.getCommonCfg();
-                    if (commCfg != null && commCfg.isSupportHumiditySensor())
-                    {
-                        Intent intent = new Intent(this, CfgHTBeaconHistoryActivity.class);
-                        intent.putExtra(CfgHTBeaconHistoryActivity.DEVICE_MAC_ADDRESS, mBeacon.getMac());   //field type
-                        startActivityForResult(intent, 1);
-                    }
-                    else
-                    {
-                        toastShow("not support humidity sensor");
-                    }
+        } else if (id == R.id.enableAccAdvertisement) {
+            enableAdvTypeIncludeAccXYZ();
+        } else if (id == R.id.enableTHAdvertisement) {
+            enableAdvTypeIncludeAccTH();
+        } else if (id == R.id.viewTHDataHistory) {
+            if (mBeacon.isConnected()) {
+                KBCfgCommon commCfg = mBeacon.getCommonCfg();
+                if (commCfg != null && commCfg.isSupportHumiditySensor()) {
+                    Intent intent = new Intent(this, CfgHTBeaconHistoryActivity.class);
+                    intent.putExtra(CfgHTBeaconHistoryActivity.DEVICE_MAC_ADDRESS, mBeacon.getMac());   //field type
+                    startActivityForResult(intent, 1);
+                } else {
+                    toastShow("not support humidity sensor");
                 }
-                else
-                {
-                    toastShow("device not connected");
-                }
-                break;
+            } else {
+                toastShow("device not connected");
+            }
 
             //T&H trigger
-            case R.id.enableTHChangeTriggerEvtRpt2Adv:
-                enableTHTriggerEvtRpt2Adv();
-                break;
-
-            case R.id.enableTHChangeTriggerEvtRpt2App:
-                enableTHTriggerEvtRpt2App();
-                break;
-
-            case R.id.enablePeriodicallyTHDataToApp:
-                enableTHPeriodicallyTriggerRpt2App();
-                break;
+        } else if (id == R.id.enableTHChangeTriggerEvtRpt2Adv) {
+            enableTHTriggerEvtRpt2Adv();
+        } else if (id == R.id.enableTHChangeTriggerEvtRpt2App) {
+            enableTHTriggerEvtRpt2App();
+        } else if (id == R.id.enablePeriodicallyTHDataToApp) {
+            enableTHPeriodicallyTriggerRpt2App();
 
             //DFU service
-            case R.id.dfuDevice:
-                if (mBeacon.isConnected()) {
-                    final Intent intent = new Intent(this, KBeaconDFUActivity.class);
-                    intent.putExtra(KBeaconDFUActivity.DEVICE_MAC_ADDRESS, mBeacon.getMac());
-                    startActivityForResult(intent, 1);
-                }
-                break;
-
-            case R.id.ringDevice:
-                //ringDevice();
-                settingChannelMask();
-                break;
-            default:
-                break;
+        } else if (id == R.id.dfuDevice) {
+            if (mBeacon.isConnected()) {
+                final Intent intent = new Intent(this, KBeaconDFUActivity.class);
+                intent.putExtra(KBeaconDFUActivity.DEVICE_MAC_ADDRESS, mBeacon.getMac());
+                startActivityForResult(intent, 1);
+            }
+        } else if (id == R.id.ringDevice) {//ringDevice();
+            settingChannelMask();
         }
     }
 

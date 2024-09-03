@@ -1,11 +1,11 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 33
+    compileSdk 34
     defaultConfig {
         applicationId "com.kkmcn.kbeacon_library"
-        minSdkVersion 21
-        targetSdkVersion 33
+        minSdkVersion 24
+        targetSdkVersion 34
         versionCode 1
         versionName "1.0"
 
@@ -27,14 +27,14 @@ android {
 }
 
 dependencies {
-    implementation 'com.google.android.material:material:1.1.0'
-    testImplementation 'junit:junit:4.+'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.2'
+    implementation 'com.google.android.material:material:1.12.0'
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
     //implementation project(path:':kbeaconlib2')
     implementation 'com.kkmcn.kbeaconlib2:kbeaconlib2:1.2.8'
-    implementation 'no.nordicsemi.android:dfu:2.0.3'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
+    implementation 'no.nordicsemi.android:dfu:2.4.2'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
-    implementation 'androidx.constraintlayout:constraintlayout:2.0.4'
-    implementation 'androidx.appcompat:appcompat:1.2.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'androidx.appcompat:appcompat:1.7.0'
 }
