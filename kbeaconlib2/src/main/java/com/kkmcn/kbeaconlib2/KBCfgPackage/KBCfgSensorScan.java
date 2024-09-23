@@ -47,7 +47,7 @@ public class KBCfgSensorScan extends KBCfgSensorBase{
     }
 
     public Integer getScanRssi() {
-        return scanDuration;
+        return this.scanRssi;
     }
 
     //Beacon can scan peripheral devices and support filtering based on RSSI.

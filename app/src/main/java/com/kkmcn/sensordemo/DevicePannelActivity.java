@@ -22,9 +22,12 @@ import com.kkmcn.kbeaconlib2.KBCfgPackage.KBAdvTxPower;
 import com.kkmcn.kbeaconlib2.KBCfgPackage.KBCfgAdvBase;
 import com.kkmcn.kbeaconlib2.KBCfgPackage.KBCfgAdvIBeacon;
 import com.kkmcn.kbeaconlib2.KBCfgPackage.KBCfgSensorBase;
+import com.kkmcn.kbeaconlib2.KBCfgPackage.KBCfgSensorCO2;
 import com.kkmcn.kbeaconlib2.KBCfgPackage.KBCfgSensorGEO;
 import com.kkmcn.kbeaconlib2.KBCfgPackage.KBCfgSensorHT;
 import com.kkmcn.kbeaconlib2.KBCfgPackage.KBCfgSensorLight;
+import com.kkmcn.kbeaconlib2.KBCfgPackage.KBCfgSensorPIR;
+import com.kkmcn.kbeaconlib2.KBCfgPackage.KBCfgSensorVOC;
 import com.kkmcn.kbeaconlib2.KBCfgPackage.KBCfgTrigger;
 import com.kkmcn.kbeaconlib2.KBCfgPackage.KBCfgTriggerAngle;
 import com.kkmcn.kbeaconlib2.KBCfgPackage.KBCfgTriggerMotion;
@@ -41,6 +44,7 @@ import com.kkmcn.kbeaconlib2.KBSensorHistoryData.KBRecordHumidity;
 import com.kkmcn.kbeaconlib2.KBSensorHistoryData.KBRecordInfoRsp;
 import com.kkmcn.kbeaconlib2.KBSensorHistoryData.KBRecordLight;
 import com.kkmcn.kbeaconlib2.KBSensorHistoryData.KBRecordPIR;
+import com.kkmcn.kbeaconlib2.KBSensorHistoryData.KBRecordVOC;
 import com.kkmcn.kbeaconlib2.KBSensorHistoryData.KBSensorReadOption;
 import com.kkmcn.kbeaconlib2.KBUtility;
 import com.kkmcn.sensordemo.dfulibrary.KBeaconDFUActivity;
@@ -52,18 +56,19 @@ import com.kkmcn.kbeaconlib2.KBConnectionEvent;
 import com.kkmcn.kbeaconlib2.KBException;
 import com.kkmcn.kbeaconlib2.KBeacon;
 import com.kkmcn.kbeaconlib2.KBeaconsMgr;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import androidx.core.app.ActivityCompat;
-
-import org.json.JSONException;
-import org.json.JSONObject;
 
 public class DevicePannelActivity extends AppBaseActivity implements View.OnClickListener,
         KBeacon.ConnStateDelegate, KBeacon.NotifyDataDelegate{
 
     public final static String DEVICE_MAC_ADDRESS = "DEVICE_MAC_ADDRESS";
-    private final static String LOG_TAG = "DevicePannel";
+    private final static String LOG_TAG = "DevicePanel";
 
     public final static String DEFAULT_PASSWORD = "0000000000000000";   //16 zero ascii
     private static SimpleDateFormat mUtcTimeFmt = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");// 日志文件格式
@@ -144,7 +149,6 @@ public class DevicePannelActivity extends AppBaseActivity implements View.OnClic
         mEnablePeriodicallyTrigger2App.setOnClickListener(this);
         mRingButton = (Button) findViewById(R.id.ringDevice);
         mRingButton.setOnClickListener(this);
-
         findViewById(R.id.dfuDevice).setOnClickListener(this);
 
     }
@@ -234,7 +238,7 @@ public class DevicePannelActivity extends AppBaseActivity implements View.OnClic
                 startActivityForResult(intent, 1);
             }
         } else if (id == R.id.ringDevice) {//ringDevice();
-            settingChannelMask();
+            ringDevice();
         }
     }
 
@@ -249,7 +253,8 @@ public class DevicePannelActivity extends AppBaseActivity implements View.OnClic
 
             KBCfgCommon cfgCommon = mBeacon.getCommonCfg();
             if (cfgCommon != null) {
-                this.mBeaconModel.setText(cfgCommon.getModel());
+                String strSoftVersion = cfgCommon.getVersion();
+                this.mBeaconModel.setText(cfgCommon.getModel() + "," + strSoftVersion);
                 ArrayList<KBCfgAdvBase> slotCfg = mBeacon.getSlotCfgList();
                 String strAdvType = "";
                 for (KBCfgAdvBase adv : slotCfg)
@@ -535,7 +540,7 @@ public class DevicePannelActivity extends AppBaseActivity implements View.OnClic
         //option trigger para, If the following two parameters are omitted,
         // the trigger broadcast interval is 2560.0ms and the transmit power is -4dBm.
         btnTriggerPara.setTriggerAdvPeriod(200.0f);
-        btnTriggerPara.setTriggerTxPower(KBAdvTxPower.RADIO_Pos4dBm);
+        btnTriggerPara.setTriggerAdvTxPower(KBAdvTxPower.RADIO_Pos4dBm);
 
         //enable push button trigger
         mTriggerButtonAdv.setEnabled(false);
@@ -1013,15 +1018,15 @@ public class DevicePannelActivity extends AppBaseActivity implements View.OnClic
         }
 
         //enable light trigger
-        KBCfgTrigger pirTriggerPara = new KBCfgTrigger(0, KBTriggerType.LightLUXAbove);
+        KBCfgTrigger lightTriggerPara = new KBCfgTrigger(0, KBTriggerType.LightLUXAbove);
 
         //Save the Light event to memory flash and report it to the APP at the same time
-        pirTriggerPara.setTriggerAction(KBTriggerAction.Record | KBTriggerAction.Report2App);
+        lightTriggerPara.setTriggerAction(KBTriggerAction.Record | KBTriggerAction.Report2App);
 
         //If light level > 500 lx, then record the event and report event to app
-        pirTriggerPara.setTriggerPara(500);
+        lightTriggerPara.setTriggerPara(500);
 
-        this.mBeacon.modifyConfig(pirTriggerPara, new KBeacon.ActionCallback() {
+        this.mBeacon.modifyConfig(lightTriggerPara, new KBeacon.ActionCallback() {
             public void onActionComplete(boolean bConfigSuccess, KBException error) {
                 if (bConfigSuccess) {
                     toastShow("enable light trigger success");
@@ -1082,22 +1087,18 @@ public class DevicePannelActivity extends AppBaseActivity implements View.OnClic
                 KBRecordDataRsp.INVALID_DATA_RECORD_POS, //set to INVALID_DATA_RECORD_POS
                 KBSensorReadOption.NewRecord,  //read direction type
                 100,   //number of records the app want to read
-                new KBeacon.ReadSensorRspCallback()
-                {
-                    @Override
-                    public void onReadComplete(boolean bConfigSuccess,  KBRecordDataRsp dataRsp, KBException error) {
-                        if (bConfigSuccess)
+                (bConfigSuccess, dataRsp, error) -> {
+                    if (bConfigSuccess)
+                    {
+                        for (KBRecordBase sensorRecord: dataRsp.readDataRspList)
                         {
-                            for (KBRecordBase sensorRecord: dataRsp.readDataRspList)
-                            {
-                                KBRecordLight record = (KBRecordLight)sensorRecord;
-                                Log.v(LOG_TAG, "Light utc time:" + record.utcTime);
-                                Log.v(LOG_TAG, "Light level:" + record.lightLevel);
-                            }
-                            if (dataRsp.readDataNextPos == KBRecordDataRsp.INVALID_DATA_RECORD_POS)
-                            {
-                                Log.v(LOG_TAG, "Read data complete");
-                            }
+                            KBRecordLight record = (KBRecordLight)sensorRecord;
+                            Log.v(LOG_TAG, "Light utc time:" + record.utcTime);
+                            Log.v(LOG_TAG, "Light level:" + record.lightLevel);
+                        }
+                        if (dataRsp.readDataNextPos == KBRecordDataRsp.INVALID_DATA_RECORD_POS)
+                        {
+                            Log.v(LOG_TAG, "Read data complete");
                         }
                     }
                 });
@@ -1176,6 +1177,70 @@ public class DevicePannelActivity extends AppBaseActivity implements View.OnClic
                 {
                     toastShow("config failed for error:" + error.errorCode);
                 }
+            }
+        });
+    }
+
+
+    //force sensor calibration
+    public void geomagneticCalibration() {
+        if (!mBeacon.isConnected()) {
+            toastShow("Device is not connected");
+            return;
+        }
+        if (!mBeacon.isConnected())
+        {
+            toastShow("Device is not connected");
+            return;
+        }
+
+        //check device capability
+        KBCfgCommon oldCommonCfg = mBeacon.getCommonCfg();
+        if (oldCommonCfg != null && !oldCommonCfg.isSupportGEOSensor())
+        {
+            toastShow("Device does not supported parking sensors");
+            return;
+        }
+
+        KBCfgSensorGEO sensorGeoPara = new KBCfgSensorGEO();
+
+        //If this parameter is set to true, the sensor initiates the mag sensor calibration
+        sensorGeoPara.setCalibration(true);
+
+        //enable sensor advertisement
+        mBeacon.modifyConfig(sensorGeoPara, (bConfigSuccess, error) -> {
+            if (bConfigSuccess)
+            {
+                toastShow("config data to beacon success");
+            }
+        });
+    }
+
+	
+	 //read battery percent when connected
+    public void readBatteryPercent()
+    {
+        if (!mBeacon.isConnected()) {
+            toastShow("Device is not connected");
+            return;
+        }
+
+        //get battery percent(the SDK will read battery level after authentication)
+        final KBCfgCommon commPara = mBeacon.getCommonCfg();
+        if (commPara != null)
+        {
+            Log.v(LOG_TAG, "old battery percent:" + commPara.getBatteryPercent());
+        }
+
+        //read new battery percent from device again
+        mBeacon.readCommonConfig((result, jsonObject, error) -> {
+            //read complete
+            if (result && jsonObject != null) {
+                final KBCfgCommon newCommPara = mBeacon.getCommonCfg();
+                Log.v(LOG_TAG, "new battery percent:" + newCommPara.getBatteryPercent());
+
+                //--------also the JSON object contain battery percent
+                //jsonObject.getInt("btPt")
             }
         });
     }
@@ -1306,6 +1371,57 @@ public class DevicePannelActivity extends AppBaseActivity implements View.OnClic
             }
         });
     }
+	
+	//update CO2 sensor parameters
+    public void setCO2SensorMeasureParameters()
+    {
+        if (!mBeacon.isConnected())
+        {
+            toastShow("Device is not connected");
+            return;
+        }
+
+        //check device capability
+        KBCfgCommon oldCommonCfg = mBeacon.getCommonCfg();
+        if (oldCommonCfg != null && !oldCommonCfg.isSupportCO2Sensor())
+        {
+            toastShow("Device does not supported CO2 sensor");
+            return;
+        }
+
+        KBCfgSensorCO2 sensorCO2Para = new KBCfgSensorCO2();
+        //enable light measure log
+        sensorCO2Para.setLogEnable(true);
+
+        //unit is second, set measure interval to 120 seconds
+        sensorCO2Para.setMeasureInterval(120);
+
+        //unit is 1 ppm, if abs(current CO2 level - last saved CO2 level) > 20, then new record created
+        sensorCO2Para.setLogCO2SaveThreshold(20);
+
+        //enable sensor advertisement
+        mBeacon.modifyConfig(sensorCO2Para, (bConfigSuccess, error) -> {
+            if (bConfigSuccess)
+            {
+                toastShow("config data to beacon success");
+            }
+            else
+            {
+                toastShow("config failed for error:" + error.errorCode);
+            }
+        });
+    }
+
+    public void otherSensorParameters()
+    {
+        //pir sensor
+        KBCfgSensorPIR pirSensor = new KBCfgSensorPIR();
+        pirSensor.setLogBackoffTime(30);
+
+        //voc sensor
+        KBCfgSensorVOC vocSensor = new KBCfgSensorVOC();
+        vocSensor.setMeasureInterval(40);
+    }
 
     //ring device
     public void ringDevice() {
@@ -1327,12 +1443,25 @@ public class DevicePannelActivity extends AppBaseActivity implements View.OnClic
         try {
             cmdPara.put("msg", "ring");
             cmdPara.put("ringTime", 20000);   //ring times, uint is ms
-            cmdPara.put("ringType", 0x1);  //0x0:led flash only; 0x1:beep alert only;
-            cmdPara.put("ledOn", 200);   //valid when ringType set to 0x0 or 0x2
-            cmdPara.put("ledOff", 1800); //valid when ringType set to 0x0 or 0x2
+
+            // 0: stop ring
+            // 0x1: Beep
+            // 0x2: LED flash
+            // 0x4: vibration
+            int ringType = 0x2;   //LED flash default
+
+            //check if need beep
+            if (cfgCommon != null && !cfgCommon.isSupportBeep())
+            {
+                ringType = ringType | 0x1;
+            }
+            cmdPara.put("ringType", ringType);  //beep and LED flash
+            cmdPara.put("ledOn", 100);   //valid when ringType set to 0x2/0x4
+            cmdPara.put("ledOff", 900); //valid when ringType set to 0x2/0x4
         }catch (JSONException exception)
         {
             exception.printStackTrace();
+            return;
         }
 
         mRingButton.setEnabled(false);
@@ -1351,6 +1480,74 @@ public class DevicePannelActivity extends AppBaseActivity implements View.OnClic
             }
         });
     }
+	
+	
+    public void powerOffDevice() {
+        if (!mBeacon.isConnected()) {
+            return;
+        }
+
+        JSONObject cmdPara = new JSONObject();
+        try {
+            cmdPara.put("msg", "admin");
+            cmdPara.put("stype", "pwroff");
+        }
+        catch (JSONException except)
+        {
+            except.printStackTrace();
+            return;
+        }
+
+        mBeacon.sendCommand(cmdPara, new KBeacon.ActionCallback() {
+            @Override
+            public void onActionComplete(boolean bConfigSuccess, KBException error) {
+                if (bConfigSuccess)
+                {
+                    toastShow("send power off command to beacon success");
+                }
+                else
+                {
+                    toastShow("send power pff command to beacon error:" + error.errorCode);
+                }
+            }
+        });
+    }
+
+    public void resetParameters() {
+        if (!mBeacon.isConnected()) {
+            return;
+        }
+
+        JSONObject cmdPara = new JSONObject();
+        try {
+            cmdPara.put("msg", "admin");
+            cmdPara.put("stype", "reset");
+        }
+        catch (JSONException except)
+        {
+            except.printStackTrace();
+            return;
+        }
+
+        mBeacon.sendCommand(cmdPara, new KBeacon.ActionCallback() {
+            @Override
+            public void onActionComplete(boolean bConfigSuccess, KBException error) {
+                if (bConfigSuccess)
+                {
+                    //disconnect with device to make sure the new parameters take effect
+                    mBeacon.disconnect();
+                    toastShow("send reset command to beacon success");
+                }
+                else
+                {
+                    toastShow("send reset command to beacon error:" + error.errorCode);
+                }
+            }
+        });
+    }
+
+
+
 
     public void readCutoffHistoryInfoExample()
     {
@@ -1360,11 +1557,16 @@ public class DevicePannelActivity extends AppBaseActivity implements View.OnClic
                 if (b){
                     Log.v(LOG_TAG, "Total records:" + infRsp.totalRecordNumber);
                     Log.v(LOG_TAG, "Unread records:" + infRsp.unreadRecordNumber);
+                    Log.v(LOG_TAG, "Device clock:" + infRsp.readInfoUtcSeconds);
                 }
             }
         });
     }
 
+    /*
+    Example1: The app read un-read history records in KBeacon device.
+    Each time the records was read, the unread pointer in the KBeacon will move to next.
+    * */
     public void readTempHistoryRecordExample()
     {
         mBeacon.readSensorRecord(KBSensorType.HTHumidity,
@@ -1468,53 +1670,46 @@ public class DevicePannelActivity extends AppBaseActivity implements View.OnClic
                 KBRecordDataRsp.INVALID_DATA_RECORD_POS, //set to INVALID_DATA_RECORD_POS
                 KBSensorReadOption.NewRecord,  //read direction type
                 100,   //number of records the app want to read
-                new KBeacon.ReadSensorRspCallback()
-                {
-                    @Override
-                    public void onReadComplete(boolean bSuccess,  KBRecordDataRsp dataRsp, KBException error) {
-                        if (bSuccess)
+                (bSuccess, dataRsp, error) -> {
+                    if (bSuccess)
+                    {
+                        for (KBRecordBase sensorRecord: dataRsp.readDataRspList)
                         {
-                            for (KBRecordBase sensorRecord: dataRsp.readDataRspList)
-                            {
-                                KBRecordAlarm record = (KBRecordAlarm)sensorRecord;
-                                Log.v(LOG_TAG, "record utc time:" + record.utcTime);
-                                Log.v(LOG_TAG, "record alarm Flag:" + record.alarmStatus);
-                            }
-                            if (dataRsp.readDataNextPos == KBRecordDataRsp.INVALID_DATA_RECORD_POS)
-                            {
-                                Log.v(LOG_TAG, "Read data complete");
-                            }
+                            KBRecordAlarm record = (KBRecordAlarm)sensorRecord;
+                            Log.v(LOG_TAG, "record utc time:" + record.utcTime);
+                            Log.v(LOG_TAG, "record cut off Flag:" + record.alarmStatus);
+                        }
+                        if (dataRsp.readDataNextPos == KBRecordDataRsp.INVALID_DATA_RECORD_POS)
+                        {
+                            Log.v(LOG_TAG, "Read data complete");
                         }
                     }
                 });
     }
 
-    //read battery percent when connected
-    public void readBatteryPercent()
+
+    //Example4: read VOC sensor history records
+    public void readVOCHistoryRecordExample()
     {
-        if (!mBeacon.isConnected()) {
-            toastShow("Device is not connected");
-            return;
-        }
-
-        //get battery percent(the SDK will read battery level after authentication)
-        final KBCfgCommon commPara = mBeacon.getCommonCfg();
-        if (commPara != null)
-        {
-            Log.v(LOG_TAG, "old battery percent:" + commPara.getBatteryPercent());
-        }
-
-        //read new battery percent from device again
-        mBeacon.readCommonConfig((result, jsonObject, error) -> {
-            //read complete
-            if (result && jsonObject != null) {
-                final KBCfgCommon newCommPara = mBeacon.getCommonCfg();
-                Log.v(LOG_TAG, "new battery percent:" + newCommPara.getBatteryPercent());
-
-                //--------also the JSON object contain battery percent
-                //jsonObject.getInt("btPt")
-            }
-        });
+        mBeacon.readSensorRecord(KBSensorType.Light,
+                KBRecordDataRsp.INVALID_DATA_RECORD_POS, //set to INVALID_DATA_RECORD_POS
+                KBSensorReadOption.NewRecord,  //read direction type
+                100,   //number of records the app want to read
+                (bConfigSuccess, dataRsp, error) -> {
+                    if (bConfigSuccess)
+                    {
+                        for (KBRecordBase sensorRecord: dataRsp.readDataRspList)
+                        {
+                            KBRecordVOC record = (KBRecordVOC)sensorRecord;
+                            Log.v(LOG_TAG, "VOC utc time:" + record.utcTime);
+                            Log.v(LOG_TAG, "VOC index:" + record.vocIndex);
+                        }
+                        if (dataRsp.readDataNextPos == KBRecordDataRsp.INVALID_DATA_RECORD_POS)
+                        {
+                            Log.v(LOG_TAG, "Read data complete");
+                        }
+                    }
+                });
     }
 
     //set tilt angle trigger
@@ -1539,16 +1734,16 @@ public class DevicePannelActivity extends AppBaseActivity implements View.OnClic
         angleTrigger.setReportingInterval(1);   //set repeat report interval to 1 minutes
 
         mBeacon.modifyConfig(angleTrigger,
-            (bConfigSuccess, error) -> {
-                if (bConfigSuccess)
-                {
-                    Log.v(LOG_TAG, "Enable angle trigger success");
-                }
-                else
-                {
-                    Log.v(LOG_TAG, "Enable angle trigger failed");
-                }
-            });
+                (bConfigSuccess, error) -> {
+                    if (bConfigSuccess)
+                    {
+                        Log.v(LOG_TAG, "Enable angle trigger success");
+                    }
+                    else
+                    {
+                        Log.v(LOG_TAG, "Enable angle trigger failed");
+                    }
+                });
     }
 
     //read door PIR detection history records

@@ -2,10 +2,6 @@
 buildscript {
     repositories {
         google()
-        maven { url 'https://maven.aliyun.com/repository/google' }
-        maven {
-            url 'https://maven.aliyun.com/repository/public'
-        }
         mavenCentral()
         mavenLocal()
     }
@@ -19,10 +15,6 @@ buildscript {
 allprojects {
     repositories {
         google()
-        maven { url 'https://maven.aliyun.com/repository/google' }
-        maven {
-            url 'https://maven.aliyun.com/repository/public'
-        }
         mavenCentral()
         mavenLocal()
     }
