@@ -8,11 +8,11 @@ public class KBRecordAlarm extends KBRecordBase {
 
     public byte alarmStatus;
 
-    public static int CUT_OFF_RECORD_LEN = 5;
+    public static int ALARM_RECORD_LEN = 5;
 
     @Override
     public int getRecordLen() {
-        return CUT_OFF_RECORD_LEN;
+        return ALARM_RECORD_LEN;
     }
 
     @Override

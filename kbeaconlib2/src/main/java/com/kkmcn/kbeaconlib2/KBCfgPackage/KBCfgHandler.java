@@ -411,11 +411,11 @@ public class KBCfgHandler {
                     //check the device adv mode
                     Integer advMode = advObj.getAdvMode();
                     if (advMode != null) {
-                        if (advMode == KBAdvMode.K2Mbps && !kbDeviceAdvCommonPara.isSupportBLE2MBps()) {
+                        if (advMode == KBAdvMode.ExtendAdvertisement && !kbDeviceAdvCommonPara.isSupportBLEExtendAdv()) {
                             Log.e(LOG_TAG, "the tx power is not support 2MBPS adv");
                             return false;
                         }
-                        if (advMode == KBAdvMode.LongRange && !kbDeviceAdvCommonPara.isSupportBLELongRangeAdv()) {
+                        if (advMode == KBAdvMode.LongRangeCodedS8 && !kbDeviceAdvCommonPara.isSupportBLELongRangeAdv()) {
                             Log.e(LOG_TAG, "the tx power is not support long range adv");
                             return false;
                         }

@@ -197,8 +197,8 @@ public class KBCfgTrigger extends KBCfgBase {
         }
     }
 
-    //set trigger adv tx power
-    public boolean setTriggerTxPower(Integer nTxPower)
+    //set trigger advertisement TX power, unit is dBm
+    public boolean setTriggerAdvTxPower(Integer nTxPower)
     {
         if (nTxPower >= KBAdvTxPower.RADIO_MIN_TXPOWER && nTxPower <= KBAdvTxPower.RADIO_MAX_TXPOWER) {
             triggerAdvTxPower = nTxPower;

@@ -13,17 +13,21 @@ public class KBCfgAdvEBeacon extends KBCfgAdvBase{
 
     public final static String DEFAULT_UUID = "7777772E-6B6B-6D63-6E2E-636F6D000001";
 
-    //    0 AES ECB（目前只有一种）
+    //    0 AES ECB
     public final static int  AES_ECB_TYPE = 0;
-    public final static int  DEFAULT_INTERVER = 0x05;
-    public final static int  MIN_INTERVAL = 1;
-    public final static int  MAX_INTERVAL = 100;
+    public final static int  DEFAULT_ENCRYPT_INTERVAL= 0x05;
+    public final static int  MIN_ENCRYPT_INTERVAL = 1;
+    public final static int  MAX_ENCRYPT_INTERVAL = 100;
+
     public final static int DEFAULT_UUID_LENGTH = 36;
 
+    //aes type, 0 : AES ECB
     private Integer aesType;
 
+    //encrypt interval, unit is second
     private Integer enItvl;
 
+    //UUID for encrypt
     private String uuid;
 
     public String getUuid()
@@ -36,7 +40,7 @@ public class KBCfgAdvEBeacon extends KBCfgAdvBase{
         return aesType;
     }
 
-    public Integer getEnItvl()
+    public Integer getEncryptInterval()
     {
         return enItvl;
     }
@@ -47,9 +51,10 @@ public class KBCfgAdvEBeacon extends KBCfgAdvBase{
         advType = KBAdvType.EBeacon;
     }
 
-    public boolean setInterval(Integer interval)
+    //Set the AES KEY to change every interval seconds
+    public boolean setEncryptInterval(Integer interval)
     {
-        if (interval >= MIN_INTERVAL && interval <= MAX_INTERVAL)
+        if (interval >= MIN_ENCRYPT_INTERVAL && interval <= MAX_ENCRYPT_INTERVAL)
         {
             enItvl = interval;
             return true;
@@ -60,11 +65,13 @@ public class KBCfgAdvEBeacon extends KBCfgAdvBase{
         }
     }
 
+    //set aes encrypt type, 0 : ECB
     public void setAesType(Integer type)
     {
-       aesType = type;
+        aesType = type;
     }
 
+    //Beacon will encrypt UUID and broadcast it.
     public boolean  setUuid(String strUuid)
     {
         if (KBUtility.isUUIDString(strUuid))

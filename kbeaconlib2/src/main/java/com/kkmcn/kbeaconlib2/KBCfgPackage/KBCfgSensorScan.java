@@ -10,6 +10,15 @@ public class KBCfgSensorScan extends KBCfgSensorBase{
     public static final String JSON_SENSOR_TYPE_SCAN_MSK = "chMsk";
     public static final String JSON_SENSOR_TYPE_SCAN_MAX = "max";
 
+    public static final int MIN_FILTER_RSSI = -100;
+    public static final int MAX_FILTER_RSSI = 10;
+
+    public static final int  MIN_SCAN_DURATION = 1;
+    public static final int MAX_SCAN_DURATION = 60000;
+
+    public static final int MIN_SCAN_PERIPHERAL_COUNT = 1;
+    public static final int MAX_SCAN_PERIPHERAL_COUNT = 100;
+
     //scanMode
     private Integer scanMode;
 
@@ -25,39 +34,52 @@ public class KBCfgSensorScan extends KBCfgSensorBase{
         return scanMode;
     }
 
+    //Scan peripheral device broadcast types, including:
+    //KBAdvMode.Legacy(BLE4.0), KBAdvMode.LongRangeCodedS8(BLE5.0 PHY coded S8)
+    //KBAdvMode.ExtendAdvertisement(BLE5.0)
     public void setScanMode(Integer scanMode) {
-        this.scanMode = scanMode;
+        if (scanMode == KBAdvMode.Legacy
+                || scanMode == KBAdvMode.LongRangeCodedS8
+                || scanMode == KBAdvMode.ExtendAdvertisement)
+        {
+            this.scanMode = scanMode;
+        }
     }
 
     public Integer getScanRssi() {
-        return scanRssi;
+        return scanDuration;
     }
 
-    public void setScanRssi(Integer scanRssi) {
-        this.scanRssi = scanRssi;
+    //Beacon can scan peripheral devices and support filtering based on RSSI.
+    // For example, only scanning devices with RSSI>-45dBm.
+    public void setScanRssi(Integer rssi) {
+        if (rssi >= MIN_FILTER_RSSI && rssi <= MAX_FILTER_RSSI)
+        {
+            this.scanRssi = rssi;
+        }
     }
 
     public Integer getScanDuration() {
         return scanDuration;
     }
 
+    //Duration of each Beacon scan of peripheral devices, unit is 10 ms
+    //The maximum scanning duration per scan is 600 seconds
     public void setScanDuration(Integer scanDuration) {
-        this.scanDuration = scanDuration;
+        if (scanDuration >= MIN_SCAN_DURATION && scanDuration <= MAX_SCAN_DURATION) {
+            this.scanDuration = scanDuration;
+        }
     }
 
     public Integer getScanChanelMask() {
         return scanChanelMask;
     }
 
-
     //The advertisement channel mask is 3 bit (37,38,39 channel), if the msak bit is 0, then it not advertisement on the channel
     //for example, if the advChannelMask is 0x3, then the beacon only advertisement on channel 37
-    public boolean setScanChanelMask(Integer advChanelMask) {
+    public void setScanChanelMask(Integer advChanelMask) {
         if (advChanelMask < 7) {
             this.scanChanelMask = advChanelMask;
-            return true;
-        }else{
-            return false;
         }
     }
 
@@ -65,8 +87,12 @@ public class KBCfgSensorScan extends KBCfgSensorBase{
         return scanMax;
     }
 
+    //The maximum number of peripheral devices during each scan
+    // When the number of devices scanned exceed the scanMax value, then stop scanning.
     public void setScanMax(Integer scanMax) {
-        this.scanMax = scanMax;
+        if (scanMax >= MIN_SCAN_PERIPHERAL_COUNT && scanMax <= MAX_SCAN_PERIPHERAL_COUNT) {
+            this.scanMax = scanMax;
+        }
     }
 
     public KBCfgSensorScan()

@@ -156,7 +156,7 @@ public class KBCfgCommon extends KBCfgBase{
     }
 
     //support BLE5 2MBPS
-    public boolean isSupportBLE2MBps()
+    public boolean isSupportBLEExtendAdv()
     {
         int nBALE5Capability = (basicCapability >> 16);
         return (nBALE5Capability & 0x4) > 0;

@@ -1,11 +1,7 @@
 package com.kkmcn.kbeaconlib2.KBCfgPackage;
 
-import com.kkmcn.kbeaconlib2.KBException;
-
 import org.json.JSONException;
 import org.json.JSONObject;
-
-import java.util.HashMap;
 
 public class KBCfgAdvBase extends KBCfgBase{
     public final static Float DEFAULT_ADV_PERIOD = 1000.0f;
@@ -106,8 +102,8 @@ public class KBCfgAdvBase extends KBCfgBase{
     public boolean setAdvMode(Integer nAdvMode)
     {
         if (nAdvMode != KBAdvMode.Legacy
-                && nAdvMode != KBAdvMode.LongRange
-                && nAdvMode != KBAdvMode.K2Mbps) {
+                && nAdvMode != KBAdvMode.LongRangeCodedS8
+                && nAdvMode != KBAdvMode.ExtendAdvertisement) {
             return false;
         }else{
             advMode = nAdvMode;

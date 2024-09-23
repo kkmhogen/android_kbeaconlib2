@@ -14,6 +14,8 @@ import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+
 import com.kkmcn.kbeaconlib2.KBAdvPackage.KBAdvPacketBase;
 import com.kkmcn.kbeaconlib2.KBAdvPackage.KBAdvPacketHandler;
 import com.kkmcn.kbeaconlib2.KBAdvPackage.KBAdvType;
@@ -54,6 +56,10 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
     private String name;
     private KBConnState state; //connection state
 
+    //Compatible with some mobile phones that automatically send requestMtu,
+    // resulting in inability to connect to the device
+    private boolean hadRequestMTU;
+
     public final static int MIN_JSON_MSG_LEN = 7;
 
     //adv and config manager
@@ -83,29 +89,29 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
     //frame tag
     private final static int PDU_TAG_START = 0x0;
     private final static int PDU_TAG_MIDDLE = 0x1;
-    private final static int  PDU_TAG_END = 0x2;
+    private final static int PDU_TAG_END = 0x2;
     private final static int PDU_TAG_SINGLE = 0x3;
     private final static int MSG_PDU_HEAD_LEN = 0x3;
 
     private final static int DATA_ACK_HEAD_LEN = 6;
 
     //down json data
-    private final static int  CENT_PERP_TX_JSON_DATA =  2;
-    private final static int  PERP_CENT_TX_JSON_ACK  = 2;
+    private final static int CENT_PERP_TX_JSON_DATA =  2;
+    private final static int PERP_CENT_TX_JSON_ACK  = 2;
 
-    private final static int  CENT_PERP_TX_HEX_DATA = 0;
-    private final static int  PERP_CENT_TX_HEX_ACK  = 0;
+    private final static int CENT_PERP_TX_HEX_DATA = 0;
+    private final static int PERP_CENT_TX_HEX_ACK  = 0;
 
-    private final static int  PERP_CENT_DATA_RPT = 3;
-    private final static int  CENT_PERP_DATA_RPT_ACK  = 3;
+    private final static int PERP_CENT_DATA_RPT = 3;
+    private final static int CENT_PERP_DATA_RPT_ACK  = 3;
 
-    private final static int  PERP_CENT_HEX_DATA_RPT = 5;
-    private final static int  CENT_PERP_HEX_DATA_RPT_ACK  = 5;
+    private final static int PERP_CENT_HEX_DATA_RPT = 5;
+    private final static int CENT_PERP_HEX_DATA_RPT_ACK  = 5;
 
-    private final static int  BEACON_ACK_SUCCESS = 0x0;
-    private final static int  BEACON_ACK_EXPECT_NEXT = 0x4;
-    private final static int  BEACON_ACK_CAUSE_CMD_RCV = 0x5;
-    private final static int  BEACON_ACK_EXE_CMD_CMP = 0x6;
+    private final static int BEACON_ACK_SUCCESS = 0x0;
+    private final static int BEACON_ACK_EXPECT_NEXT = 0x4;
+    private final static int BEACON_ACK_CAUSE_CMD_RCV = 0x5;
+    private final static int BEACON_ACK_EXE_CMD_CMP = 0x6;
     private final static int MAX_MTU_SIZE = 251;
     private final static int MAX_BUFFER_DATA_SIZE = 4096;
 
@@ -128,7 +134,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
     private final HashMap<Integer, NotifyDataDelegate> notifyData2ClassMap;
     private NotifyDataDelegate mToAddedSubscribeInstance = null;
     private Integer mToAddedTriggerType = 0;
-    private KBPreferenceMgr mPrefMgr = null;
+    private final KBPreferenceMgr mPrefMgr;
 
     private enum ActionType
     {
@@ -142,7 +148,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         ACTION_SENSOR_COMMAND,
         ACTION_ENABLE_NTF,
         ACTION_DISABLE_NTF
-    };
+    }
 
     private static class ActionCommand
     {
@@ -167,7 +173,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
             receiveDataLen = 0;
             receiveData = new byte[MAX_BUFFER_DATA_SIZE];
         }
-    };
+    }
 
     //command msg buffer list
     ArrayList<ActionCommand> mActionList = new ArrayList<>(5);
@@ -220,7 +226,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         mAdvPacketMgr.setAdvTypeFilter(nAdvTypeFilter);
     }
 
-    public void attach2Device(BluetoothDevice bleDevice, KBeaconsMgr beaconMgr)
+    public void attach2Device(BluetoothDevice bleDevice)
     {
         mBleDevice = bleDevice;
     }
@@ -229,6 +235,12 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
     public BluetoothDevice getBleDevice()
     {
         return mBleDevice;
+    }
+
+    //get ble GATT
+    public BluetoothGatt getBleGatt()
+    {
+        return mGattConnection;
     }
 
     //get mac address
@@ -266,7 +278,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
 
     public Integer maxTxPower()
     {
-        KBCfgCommon commCfg = (KBCfgCommon)mCfgMgr.getCfgComm();
+        KBCfgCommon commCfg = mCfgMgr.getCfgComm();
         if (commCfg != null){
             return commCfg.getMaxTxPower();
         }else{
@@ -276,7 +288,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
 
     public Integer minTxPower()
     {
-        KBCfgCommon commCfg = (KBCfgCommon)mCfgMgr.getCfgComm();
+        KBCfgCommon commCfg = mCfgMgr.getCfgComm();
         if (commCfg != null){
             return commCfg.getMinTxPower();
         }else{
@@ -286,7 +298,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
 
     public String model()
     {
-        KBCfgCommon commCfg = (KBCfgCommon)mCfgMgr.getCfgComm();
+        KBCfgCommon commCfg = mCfgMgr.getCfgComm();
         if (commCfg != null){
             return commCfg.getModel();
         }else{
@@ -297,7 +309,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
     //hardware version
     public String hardwareVersion()
     {
-        KBCfgCommon commCfg = (KBCfgCommon)mCfgMgr.getCfgComm();
+        KBCfgCommon commCfg = mCfgMgr.getCfgComm();
         if (commCfg != null){
             return commCfg.getHardwareVersion();
         }else{
@@ -308,7 +320,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
     //firmware version
     public String version()
     {
-        KBCfgCommon commCfg = (KBCfgCommon)mCfgMgr.getCfgComm();
+        KBCfgCommon commCfg = mCfgMgr.getCfgComm();
         if (commCfg != null){
             return commCfg.getVersion();
         }else{
@@ -318,7 +330,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
 
     public Integer capability()
     {
-        KBCfgCommon commCfg = (KBCfgCommon)mCfgMgr.getCfgComm();
+        KBCfgCommon commCfg = mCfgMgr.getCfgComm();
         if (commCfg != null){
             return commCfg.getBasicCapability();
         }else{
@@ -328,7 +340,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
 
     public Integer triggerCapability()
     {
-        KBCfgCommon commCfg = (KBCfgCommon)mCfgMgr.getCfgComm();
+        KBCfgCommon commCfg = mCfgMgr.getCfgComm();
         if (commCfg != null){
             return commCfg.getTrigCapability();
         }else{
@@ -374,7 +386,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
             delegate = connectCallback;
             mGattConnection = mBleDevice.connectGatt(mContext, false, mGattCallback, BluetoothDevice.TRANSPORT_LE);
             Log.v(LOG_TAG, "start connect to device " + mac);
-
+            hadRequestMTU = false;
             mPassword = password;
             state = KBConnState.Connecting;
             mPrefMgr.setSingleBeaconPassword(mac, password);
@@ -539,11 +551,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
     //check if device support trigger notification
     public boolean isSupportSensorDataNotification()
     {
-        if (getCharacteristicByID(KBUtility.KB_CFG_SERVICE_UUID, KBUtility.KB_IND_CHAR_UUID) != null)
-        {
-            return true;
-        }
-        return false;
+        return getCharacteristicByID(KBUtility.KB_CFG_SERVICE_UUID, KBUtility.KB_IND_CHAR_UUID) != null;
     }
 
     //subscribe trigger notification
@@ -559,7 +567,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
                 return;
             }
 
-            if (this.notifyData2ClassMap.size() == 0)
+            if (this.notifyData2ClassMap.isEmpty())
             {
                 if (state != KBConnState.Connected)
                 {
@@ -589,9 +597,9 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
                     callback.onActionComplete(true, null);
                 }
             }
-        }catch (Exception excpt)
+        }catch (Exception except)
         {
-            excpt.printStackTrace();
+            except.printStackTrace();
         }
     }
 
@@ -651,9 +659,9 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
                     callback.onActionComplete(true, null);
                 }
             }
-        }catch (Exception excpt)
+        }catch (Exception except)
         {
-            excpt.printStackTrace();
+            except.printStackTrace();
         }
     }
 
@@ -669,10 +677,8 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
             Log.e(LOG_TAG, "remove device gatt catch:" + mac);
 
             try {
-                Method localMethod = mGattConnection.getClass().getMethod("refresh", new Class[0]);
-                if (localMethod != null) {
-                    localMethod.invoke(mGattConnection, new Object[0]);
-                }
+                Method localMethod = mGattConnection.getClass().getMethod("refresh");
+                localMethod.invoke(mGattConnection);
             } catch (Exception localException) {
                 Log.e(LOG_TAG, "An exception occured while refreshing device");
             }
@@ -692,7 +698,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
 
         //save callback
         String strJsonCfgData = KBCfgHandler.cmdParaToJsonString(cmdPara);
-        if (strJsonCfgData.length() == 0) {
+        if (strJsonCfgData.isEmpty()) {
             if (callback != null) {
                 callback.onActionComplete(false, new KBException(KBErrorCode.CfgInputInvalid, "Input parameters invalid"));
             }
@@ -845,7 +851,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
             return;
         }
 
-        //get configruation json
+        //get configuration json
         String strJsonCfgData = null;
         try
         {
@@ -853,7 +859,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         }catch (JSONException except){
             except.printStackTrace();
         }
-        if (strJsonCfgData == null || strJsonCfgData.length() == 0){
+        if (strJsonCfgData == null || strJsonCfgData.isEmpty()){
             if (callback != null) {
                 callback.onActionComplete(false, new KBException(KBErrorCode.CfgInputInvalid, "Input parameters to json failed"));
             }
@@ -920,7 +926,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
 
     private void handleBeaconEnableSubscribeComplete()
     {
-		if (mActionList.size() == 0)
+		if (mActionList.isEmpty())
 		{
 			return;
 		}
@@ -1055,7 +1061,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
                             startReadBeaconParameters(ActionType.ACTION_INIT_READ_CFG, strJsonCfgData, null);
                         }
                     }else{
-                        if (isSupportSensorDataNotification() && notifyData2ClassMap.size() > 0)
+                        if (isSupportSensorDataNotification() && !notifyData2ClassMap.isEmpty())
                         {
                             startEnableIndication(KBUtility.KB_CFG_SERVICE_UUID, KBUtility.KB_IND_CHAR_UUID, true);
                         }
@@ -1099,7 +1105,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
     private void closeBeacon(int nReason)
     {
         mCloseReason = nReason;
-
+        hadRequestMTU = false;
         this.cancelActionTimer();
         mMsgHandler.removeMessages(MSG_CONNECT_TIMEOUT);
         mMsgHandler.removeMessages(MSG_CLOSE_CONNECTION_TIMEOUT);
@@ -1240,7 +1246,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
     {
         ActionCommand action = null;
         mMsgHandler.removeMessages(MSG_ACTION_TIME_OUT);
-        if (mActionList.size() > 0) {
+        if (!mActionList.isEmpty()) {
             action = mActionList.remove(0);
         }
         mActionDoing = false;
@@ -1268,13 +1274,13 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         mMsgHandler.sendEmptyMessageDelayed(MSG_ACTION_TIME_OUT, action.actionTimeout);
     }
 
-    private void configHandleDownCmdAck(byte frameType, byte byDataType, byte[]data)
+    private void configHandleDownCmdAck(byte byDataType, byte[]data)
     {
         short nReqDataSeq = KBUtility.htonshort(data[0], data[1]);
         short nAckCause = KBUtility.htonshort(data[4], data[5]);
         //Log.v(LOG_TAG, "Receive device ack:" + nAckCause + ",seq:" + nReqDataSeq);
 
-        if (mActionList.size() == 0){
+        if (mActionList.isEmpty()){
             Log.e(LOG_TAG, "action state error");
             return;
         }
@@ -1420,7 +1426,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         short nDataSeq = KBUtility.htonshort(data[0], data[1]);
         int nDataPayloadLen = data.length - 2;
 
-        if (mActionList.size() == 0){
+        if (mActionList.isEmpty()){
             Log.e(LOG_TAG, "receive data report in no action state");
             return;
         }
@@ -1523,7 +1529,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
 
     private void handleHexRptDataComplete()
     {
-        if (mActionList.size() == 0){
+        if (mActionList.isEmpty()){
             Log.e(LOG_TAG, "receive hex report in no action state");
             return;
         }
@@ -1588,7 +1594,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
 
     private void handleJsonRptDataComplete()
     {
-        if (mActionList.size() == 0){
+        if (mActionList.isEmpty()){
             Log.e(LOG_TAG, "receive hex report in no action state");
             return;
         }
@@ -1722,10 +1728,10 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         return characteristic;
     }
 
-    private Handler mMsgHandler = new Handler(new Handler.Callback() {
+    private final Handler mMsgHandler = new Handler(new Handler.Callback() {
         @SuppressLint("MissingPermission")
         @Override
-        public boolean handleMessage(Message msg) {
+        public boolean handleMessage(@NonNull Message msg) {
             switch (msg.what) {
                 //start pair scan
                 case MSG_CONNECT_TIMEOUT: {
@@ -1779,12 +1785,14 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
                 }
 
                 case MSG_START_REQUST_MAX_MTU:{
-                    mGattConnection.requestMtu(MAX_MTU_SIZE);
+                    if (!hadRequestMTU){
+                        mGattConnection.requestMtu(MAX_MTU_SIZE);
+                    }
                     break;
                 }
 
                 case MSG_START_EXECUTE_NEXT_MSG:{
-                    if (mActionList.size() > 0){
+                    if (!mActionList.isEmpty()){
                         executeNextAction();
                     }
                     break;
@@ -1812,7 +1820,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
     private void handleBeaconIndData(byte[] data)
     {
         int nDataType = ((data[0] & 0xFF) & 0x3F);
-        NotifyDataDelegate sensorInstance = null;
+        NotifyDataDelegate sensorInstance;
         sensorInstance = this.notifyData2ClassMap.get(KBTriggerType.TriggerNull);
 
         if (sensorInstance == null) {
@@ -1851,7 +1859,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         }
         else if (byDataType == PERP_CENT_TX_JSON_ACK || byDataType == PERP_CENT_TX_HEX_ACK)
         {
-            this.configHandleDownCmdAck(byFrameType, byDataType, ntfDataBody);
+            this.configHandleDownCmdAck(byDataType, ntfDataBody);
         }
         else if (byDataType == PERP_CENT_DATA_RPT || byDataType == PERP_CENT_HEX_DATA_RPT)
         {
@@ -1897,9 +1905,10 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
                 Log.v(LOG_TAG, "The max mtu size is:" + mtu);
             }
 
-            if (state == KBConnState.Connecting) {
+            if (state == KBConnState.Connecting && !hadRequestMTU) {
                 Message msgCentralEvt = mMsgHandler.obtainMessage(MSG_SYS_CONNECTION_EVT, BluetoothGatt.GATT_SUCCESS, BluetoothProfile.STATE_CONNECTED);
-                mMsgHandler.sendMessageDelayed(msgCentralEvt, 300);  //delay 200ms for next action
+                mMsgHandler.sendMessageDelayed(msgCentralEvt, 200);  //delay 200ms for next action
+                hadRequestMTU = true;
             }
         }
 
@@ -1979,7 +1988,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
                 Message msg = mMsgHandler.obtainMessage(MSG_BEACON_INDICATION_RECEIVED, ntfData);
                 mMsgHandler.sendMessage(msg);
             }
-        };
+        }
     }
 
 

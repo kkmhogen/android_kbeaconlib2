@@ -540,7 +540,7 @@ public class KBeaconsMgr {
 
         if (bParseAdvData) {
             if (mCbKBeacons.get(strMacAddress) == null) {
-                pUnknownBeacon.attach2Device(device, this);
+                pUnknownBeacon.attach2Device(device);
                 mCbKBeacons.put(strMacAddress, pUnknownBeacon);
             }
 
