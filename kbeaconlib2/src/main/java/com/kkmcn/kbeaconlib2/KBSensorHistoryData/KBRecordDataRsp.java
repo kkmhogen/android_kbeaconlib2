@@ -15,6 +15,7 @@ public class KBRecordDataRsp extends Object
     public KBRecordDataRsp()
     {
         readDataNextPos = INVALID_DATA_RECORD_POS;
+        readDataRspList = new ArrayList<>();
     }
 }
 

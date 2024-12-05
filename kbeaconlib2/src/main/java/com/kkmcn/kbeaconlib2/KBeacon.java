@@ -112,6 +112,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
     private final static int BEACON_ACK_EXPECT_NEXT = 0x4;
     private final static int BEACON_ACK_CAUSE_CMD_RCV = 0x5;
     private final static int BEACON_ACK_EXE_CMD_CMP = 0x6;
+    private final static int BEACON_ACK_EXE_CMD_UN_CMP = 0x7;
     private final static int MAX_MTU_SIZE = 251;
     private final static int MAX_BUFFER_DATA_SIZE = 4096;
 
@@ -162,6 +163,9 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         private final byte[] receiveData;
         ArrayList<KBCfgBase> toBeCfgData;
 
+        //all receiveData
+        ArrayList<byte[]> allData;
+
         public ActionCommand(ActionType type, int timeout)
         {
             actionType = type;
@@ -172,6 +176,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
             toBeCfgData = null;
             receiveDataLen = 0;
             receiveData = new byte[MAX_BUFFER_DATA_SIZE];
+            allData = new ArrayList<>();
         }
     }
 
@@ -677,8 +682,10 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
             Log.e(LOG_TAG, "remove device gatt catch:" + mac);
 
             try {
-                Method localMethod = mGattConnection.getClass().getMethod("refresh");
-                localMethod.invoke(mGattConnection);
+                Method localMethod = mGattConnection.getClass().getMethod("refresh", new Class[0]);
+                if (localMethod != null) {
+                    localMethod.invoke(mGattConnection, new Object[0]);
+                }
             } catch (Exception localException) {
                 Log.e(LOG_TAG, "An exception occured while refreshing device");
             }
@@ -957,9 +964,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
 
     //connect device timeout
     private void actionTimeout() {
-        ActionCommand action = mActionList.remove(0);
-        mActionDoing = false;
-
+        ActionCommand action = cancelActionTimer();
         if (action.actionType == ActionType.ACTION_INIT_READ_CFG) {
             closeBeacon(KBConnectionEvent.ConnTimeout);
         } else {
@@ -1211,20 +1216,13 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
             nPduTag = PDU_TAG_SINGLE;
             nDataLen = action.downDataBuff.length;
         }
-        else if (nReqDataSeq == 0)
-        {
-            nPduTag = PDU_TAG_START;
-            nDataLen = nMaxTxDataSize;
-        }
-        else if (nReqDataSeq + nMaxTxDataSize < action.downDataBuff.length)
-        {
-            nPduTag = PDU_TAG_MIDDLE;
-            nDataLen = nMaxTxDataSize;
-        }
-        else if (nReqDataSeq + nMaxTxDataSize >= action.downDataBuff.length)
-        {
-            nPduTag = PDU_TAG_END;
-            nDataLen = action.downDataBuff.length - nReqDataSeq;
+        else if (nReqDataSeq != 0) {
+            if (nReqDataSeq + nMaxTxDataSize < action.downDataBuff.length) {
+                nPduTag = PDU_TAG_MIDDLE;
+            } else if (nReqDataSeq + nMaxTxDataSize >= action.downDataBuff.length) {
+                nPduTag = PDU_TAG_END;
+                nDataLen = action.downDataBuff.length - nReqDataSeq;
+            }
         }
 
         //down data head
@@ -1317,8 +1315,11 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
             {
                 ActionCommand action = mActionList.get(0);
                 if (data.length > DATA_ACK_HEAD_LEN) {
-                    System.arraycopy(data, DATA_ACK_HEAD_LEN, action.receiveData, 0, data.length - DATA_ACK_HEAD_LEN);
-                    action.receiveDataLen = (data.length - DATA_ACK_HEAD_LEN);
+                    action.receiveDataLen = data.length - DATA_ACK_HEAD_LEN;
+                    System.arraycopy(data, DATA_ACK_HEAD_LEN, action.receiveData, 0, action.receiveDataLen);
+                    byte[] reallyData = new byte[action.receiveDataLen];
+                    System.arraycopy(action.receiveData, 0, reallyData, 0, action.receiveDataLen);
+                    action.allData.add(reallyData);
                 }
 
                 if (byDataType == PERP_CENT_TX_JSON_ACK) {
@@ -1374,14 +1375,26 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         }
         else if (nAckCause == BEACON_ACK_EXE_CMD_CMP)
         {
-            Log.v(LOG_TAG, "beacon execute command complete");
+            if (byDataType == PERP_CENT_TX_HEX_ACK)
+            {
+                Log.v(LOG_TAG, "receive hex report complete:");
+                handleHexRptDataComplete();
+            }
             mMsgHandler.sendEmptyMessageDelayed(MSG_START_EXECUTE_NEXT_MSG, 10);
-        }
-        else   //command failed
+        } else if (nAckCause == BEACON_ACK_EXE_CMD_UN_CMP) {
+            mActionDoing = true;
+            ActionCommand action = mActionList.get(0);
+            if (action != null) {
+                mMsgHandler.removeMessages(MSG_ACTION_TIME_OUT);
+                mMsgHandler.sendEmptyMessageDelayed(MSG_ACTION_TIME_OUT, action.actionTimeout);
+            }
+            Log.v(LOG_TAG, "beacon send frame complete, now wait send next frame");
+        } else   //command failed
         {
             Log.e(LOG_TAG, "beacon command execute failed:" +  nAckCause);
-            ActionType actionType = mActionList.get(0).actionType;
+
             ActionCommand action = cancelActionTimer();
+            ActionType actionType = action.actionType;
 
             if (ActionType.ACTION_INIT_READ_CFG == actionType)
             {
@@ -1430,6 +1443,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
             Log.e(LOG_TAG, "receive data report in no action state");
             return;
         }
+
         ActionCommand action = mActionList.get(0);
 
         //frame start
@@ -1469,7 +1483,9 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
             {
                 System.arraycopy(data, 2, action.receiveData, action.receiveDataLen, nDataPayloadLen);
                 action.receiveDataLen += nDataPayloadLen;
-
+                byte[] reallyData = new byte[action.receiveDataLen];
+                System.arraycopy(action.receiveData, 0, reallyData, 0, action.receiveDataLen);
+                action.allData.add(reallyData);
                 //all data receive complete
                 configSendDataRptAck((short)action.receiveDataLen, byDataType, (short)0x0);
 
@@ -1481,24 +1497,18 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
             //new read message command
             System.arraycopy(data, 2, action.receiveData, action.receiveDataLen, nDataPayloadLen);
             action.receiveDataLen += nDataPayloadLen;
-
+            byte[] reallyData = new byte[action.receiveDataLen];
+            System.arraycopy(action.receiveData, 0, reallyData, 0, action.receiveDataLen);
+            action.allData.add(reallyData);
             configSendDataRptAck((short)action.receiveDataLen, byDataType, (short)0x0);
 
             bRcvDataCmp = true;
+
         }
-
-        if (bRcvDataCmp)
+        if (bRcvDataCmp && byDataType == PERP_CENT_DATA_RPT)
         {
-            if (byDataType == PERP_CENT_DATA_RPT) {
-                Log.v(LOG_TAG, "receive json report complete:" + nDataSeq + ", expect seq:" + action.receiveDataLen);
-
-                handleJsonRptDataComplete();
-            }
-            else if (byDataType == PERP_CENT_HEX_DATA_RPT)
-            {
-                Log.v(LOG_TAG, "receive hex report complete:" + nDataSeq + ", expect seq:" + action.receiveDataLen);
-                handleHexRptDataComplete();
-            }
+            Log.v(LOG_TAG, "receive json report complete:" + nDataSeq + ", expect seq:" + action.receiveDataLen);
+            handleJsonRptDataComplete();
         }
     }
 
@@ -1533,8 +1543,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
             Log.e(LOG_TAG, "receive hex report in no action state");
             return;
         }
-        ActionCommand action = this.cancelActionTimer();
-
+        ActionCommand action = cancelActionTimer();
         if (action.actionType == ActionType.ACTION_SENSOR_READ_INFO) {
             KBRecordInfoRsp readRsp = null;
             boolean readSuccess = true;
@@ -1555,17 +1564,26 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
             }
         }
         else if (action.actionType == ActionType.ACTION_SENSOR_READ_RECORD) {
-            KBRecordDataRsp readRsp = null;
-            boolean readSuccess = true;
+
+            KBRecordDataRsp readRsp = new KBRecordDataRsp();
+            boolean readSuccess = false;
             KBException exception = null;
-            if (action.receiveDataLen > 0) {
-                byte[] validData = new byte[action.receiveDataLen];
-                System.arraycopy(action.receiveData, 0, validData, 0, action.receiveDataLen);
-                readRsp = (KBRecordDataRsp)mSensorRecordsMgr.parseSensorResponse(validData);
+            for (byte[] item:action.allData) {
+                if (item.length > 0) {
+                    byte[] validData = new byte[item.length];
+                    System.arraycopy(item, 0, validData, 0, item.length);
+                    KBRecordDataRsp itemReadRsp = (KBRecordDataRsp)mSensorRecordsMgr.parseSensorResponse(validData);
+                    if (itemReadRsp != null) {
+                        readRsp.readDataRspList.addAll(itemReadRsp.readDataRspList);
+                        readRsp.readDataNextPos = itemReadRsp.readDataNextPos;
+                        readSuccess = true;
+                    }else {
+                        readSuccess = false;
+                    }
+                }
             }
 
-            if (readRsp == null) {
-                readSuccess = false;
+            if (!readSuccess) {
                 exception = new KBException(KBErrorCode.CfgParseSensorMsgFailed, "parse sensor info response failed");
             }
             if (action.actionCallback != null) {
