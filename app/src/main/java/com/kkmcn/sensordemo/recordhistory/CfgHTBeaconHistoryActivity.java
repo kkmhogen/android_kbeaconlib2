@@ -216,7 +216,7 @@ public class CfgHTBeaconHistoryActivity extends AppBaseActivity implements AbsLi
         mBeacon.readSensorRecord(KBSensorType.HTHumidity,
                 KBRecordDataRsp.INVALID_DATA_RECORD_POS,
                 KBSensorReadOption.NewRecord,
-                100,
+                500,
                 (bConfigSuccess, dataRsp, error) -> {
                     if (!bConfigSuccess){
                         toastShow("read data failed");

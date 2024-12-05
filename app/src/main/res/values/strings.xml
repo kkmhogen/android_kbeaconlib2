@@ -285,11 +285,15 @@
     <string name="kb_dfu_device">Dfu</string>
     <string name="menu_firmware_update">Update</string>
     <string name="UPDATE_RELEASE_NOTES">Release notes:</string>
+    <string name="BEACON_RSSI_Filter_title">RSSI</string>
+    <string name="BEACON_FILTER_BEACON">Tap to edit filter</string>
+    <string name="BEACON_RSSI_UINT">dBm</string>
 
     <string name="UPDATE_NOT_FOUND_NEW_VERSION">Failed to obtain the latest version information, please ensure that the Internet connection is successful.</string>
 
     <string name="DFU_VERSION_MAKE_SURE">To ensure a successful upgrade, it is recommended that the distance between the mobile phone and the KBeacon device be less than 3 meters. Are you sure you want to upgrade?</string>
     <string name="EXPORT_HISTORY_DATA_EMAIL_TITLE">Sensor data about device(mac:%1$s)</string>
+    <string name="BEACON_FILTER_NAME">Filter name</string>
 
     <string name="update_ibeacon_2_tlm">iBeacon2TLM</string>
     <string name="BEACON_TEMP_UINT">°C</string>
