@@ -327,7 +327,7 @@ public class KBeaconsMgr {
                     iBeaconFilter);
 
             ScanFilter.Builder filter4 = new ScanFilter.Builder().setManufacturerData(KBUtility.KKM_MANUFACTURE_ID,
-                    null);
+                    new byte[0]);
             filterList.add(filter1.build());
             filterList.add(filter2.build());
             filterList.add(filter3.build());
