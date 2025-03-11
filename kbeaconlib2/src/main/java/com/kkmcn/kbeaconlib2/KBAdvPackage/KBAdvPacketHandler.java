@@ -86,7 +86,7 @@ public class KBAdvPacketHandler {
             else {
                 beaconData = record.getManufacturerSpecificData(KBUtility.KKM_MANUFACTURE_ID);
                 if (beaconData != null) {
-                    if (beaconData[0] == 0x21 && beaconData.length >= MIN_SENSOR_ADV_LEN) {
+                    if ((beaconData[0] == 0x21 || beaconData[0] == 0x6) && beaconData.length >= MIN_SENSOR_ADV_LEN) {
                         nAdvType = KBAdvType.Sensor;
                     } else if (beaconData[0] == 0x22 && beaconData.length >= MIN_SYSTEM_ADV_LEN) {
                         nAdvType = KBAdvType.System;
@@ -159,6 +159,8 @@ public class KBAdvPacketHandler {
             advPacket.updateBasicInfo(rssi,mac);
             if (nAdvType == KBAdvType.EBeacon){
                 ((KBAdvPacketEBeacon)advPacket).setPassword(pwd);
+            } else if (nAdvType == KBAdvType.Sensor){
+                ((KBAdvPacketSensor)advPacket).setPassword(pwd);
             }
             if (advPacket.parseAdvPacket(beaconData)) {
                 if (bNewObj) {

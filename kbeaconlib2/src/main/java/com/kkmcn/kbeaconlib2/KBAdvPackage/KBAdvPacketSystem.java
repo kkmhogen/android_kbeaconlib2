@@ -36,7 +36,7 @@ public class KBAdvPacketSystem extends KBAdvPacketBase{
     public String getMacAddress(){return macAddress;}
 
     @SuppressLint("DefaultLocale")
-    public boolean parseAdvPacket(byte[] beaconData)
+    boolean parseAdvPacket(byte[] beaconData)
     {
         super.parseAdvPacket(beaconData);
 

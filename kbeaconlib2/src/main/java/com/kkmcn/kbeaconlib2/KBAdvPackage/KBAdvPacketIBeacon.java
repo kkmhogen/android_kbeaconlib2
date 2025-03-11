@@ -36,7 +36,7 @@ public class KBAdvPacketIBeacon extends KBAdvPacketBase{
         return KBAdvType.IBeacon;
     }
 
-    public boolean parseAdvPacket(byte[] iBeaconData)
+    boolean parseAdvPacket(byte[] iBeaconData)
     {
         super.parseAdvPacket(iBeaconData);
 

@@ -40,11 +40,11 @@ public class KBAdvPacketBase {
         return mac;
     }
 
-    public void setMac(String mac) {
+    void setMac(String mac) {
         this.mac = mac;
     }
 
-    public boolean parseAdvPacket(byte[] data)
+    boolean parseAdvPacket(byte[] data)
     {
         lastReceiveTime = System.currentTimeMillis();
         return true;

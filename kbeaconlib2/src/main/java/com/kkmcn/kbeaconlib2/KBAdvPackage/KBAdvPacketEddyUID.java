@@ -27,7 +27,7 @@ public class KBAdvPacketEddyUID extends KBAdvPacketBase{
         return KBAdvType.EddyUID;
     }
 
-    public boolean parseAdvPacket(byte[] beaconData)
+    boolean parseAdvPacket(byte[] beaconData)
     {
         super.parseAdvPacket(beaconData);
         int nSrvIndex = 1;  //skip adv type

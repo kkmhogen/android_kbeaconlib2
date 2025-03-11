@@ -11,4 +11,5 @@ public class KBSensorType {
     public static final int CO2 = 0x41;
     public static final int GEO = 0x42;
     public static final int SCAN = 0x44;
+    public static final int NFC = 0x45;
 }

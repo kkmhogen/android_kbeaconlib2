@@ -216,6 +216,9 @@ public class KBCfgCommon extends KBCfgBase{
     //is support humidity sensor
     public boolean isSupportHumiditySensor()
     {
+        if(basicCapability == null){
+            return false;
+        }
         return ((basicCapability & 0x8) > 0);
     }
 
@@ -259,6 +262,12 @@ public class KBCfgCommon extends KBCfgBase{
     public boolean isSupportGEOSensor()
     {
         return ((basicCapability & 0x2000000) > 0);
+    }
+
+    //is support NFC sensor
+    public boolean isSupportNFCSensor()
+    {
+        return ((basicCapability & 0x8000000) > 0);
     }
 
     //is support scan sensor

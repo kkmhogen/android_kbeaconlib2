@@ -1,8 +1,12 @@
 package com.kkmcn.kbeaconlib2.KBAdvPackage;
 
+import com.kkmcn.kbeaconlib2.ByteConvert;
 import com.kkmcn.kbeaconlib2.KBUtility;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.regex.Pattern;
 
 public class KBAdvPacketSensor extends KBAdvPacketBase{
 
@@ -16,6 +20,8 @@ public class KBAdvPacketSensor extends KBAdvPacketBase{
     private final  static int SENSOR_MASK_VOC = 0x80;
     private final  static int SENSOR_MASK_CO2 = 0x200;
     private final  static int SENSOR_MASK_RECORD_NUM = 0x400;
+
+    private final static int ENCRYPT_SENSOR_TYPE = 0x06;
 
     private KBAccSensorValue accSensor;
 
@@ -39,6 +45,12 @@ public class KBAdvPacketSensor extends KBAdvPacketBase{
     private Integer co2;
 
     private Integer newTHRecordNum;
+
+    private Long utcSecCount;
+
+    private String password;
+
+    private boolean isEncryptAdv;
 
     public int getAdvType()
     {
@@ -95,6 +107,14 @@ public class KBAdvPacketSensor extends KBAdvPacketBase{
         return co2;
     }
 
+    public Long getUtcSecCount() {
+        return utcSecCount;
+    }
+
+    public boolean isEncryptAdv() {
+        return isEncryptAdv;
+    }
+
     public Integer getNewTHRecordNum() {
         return newTHRecordNum;
     }
@@ -107,14 +127,78 @@ public class KBAdvPacketSensor extends KBAdvPacketBase{
         return vocElapseSec;
     }
 
-    public boolean parseAdvPacket(byte[] beaconData)
+    void setPassword(String password) {
+        this.password = password;
+    }
+
+    private byte[] decryptMD5Data(int nStartIndex, byte[] beaconData)
+    {
+        byte[] encryptedSensorData = new byte[16];
+        System.arraycopy(beaconData, nStartIndex, encryptedSensorData,0,16);
+        nStartIndex += 16;
+
+        byte[] utcData = new byte[4];
+        System.arraycopy(beaconData, nStartIndex, utcData,0,4);
+        utcSecCount = ByteConvert.bytesToUint(beaconData, nStartIndex);
+
+        byte[] md5KeyData = new byte[26];
+        byte[] pwdBytes = password.getBytes(StandardCharsets.UTF_8);
+        byte[] dataPwd = new byte[16];
+        System.arraycopy(pwdBytes,0,dataPwd,0,pwdBytes.length);
+        String mac = getMac();
+        byte[] dataMac = KBUtility.fromHex2Bytes(mac, Pattern.compile(":"));
+
+        System.arraycopy(dataPwd,0,md5KeyData,0,16);
+        System.arraycopy(dataMac,0,md5KeyData,16,6);
+        System.arraycopy(utcData,0,md5KeyData,22,4);
+
+        try {
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            md.update(md5KeyData);
+            byte[] aesKey = md.digest();
+            return Crypter.decrypt(aesKey, encryptedSensorData);
+        }catch (Exception exception) {
+            return null;
+        }
+
+    }
+
+    boolean parseAdvPacket(byte[] beaconData)
     {
         super.parseAdvPacket(beaconData);
+        byte[] plainData;
+        int nSensorMask;
 
-        int nSrvIndex = 1; //skip adv type
+        int nSrvIndex = 0;
+        byte advType = beaconData[nSrvIndex++];
 
+        //get sensor mask
         int sensorMaskHigh = ((beaconData[nSrvIndex++] & 0xFF) << 8);
-        int nSensorMask = sensorMaskHigh + (beaconData[nSrvIndex++] & 0xFF);
+        nSensorMask = sensorMaskHigh + (beaconData[nSrvIndex++] & 0xFF);
+
+        //decrypt content
+        if (ENCRYPT_SENSOR_TYPE == advType)
+        {
+            plainData = decryptMD5Data(nSrvIndex, beaconData);
+            isEncryptAdv = true;
+        }
+        else
+        {
+            int dataLen = beaconData.length - nSrvIndex;
+            plainData = new byte[dataLen];
+            System.arraycopy( beaconData, nSrvIndex, plainData,0,dataLen);
+            isEncryptAdv = false;
+        }
+
+        return parseSensorData(nSensorMask, plainData);
+    }
+
+    private boolean parseSensorData(int nSensorMask, byte[] beaconData)
+    {
+        int nSrvIndex = 0;
+        if (beaconData == null){
+            return false;
+        }
 
         if ((nSensorMask & SENSOR_MASK_VOLTAGE) > 0)
         {
@@ -177,11 +261,11 @@ public class KBAdvPacketSensor extends KBAdvPacketBase{
             accSensor.xAis = nAccValue;
 
             nAccValue = (short)((beaconData[nSrvIndex++] & 0xFF) << 8);
-            nAccValue += (beaconData[nSrvIndex++] & 0xFF);
+            nAccValue += (short)(beaconData[nSrvIndex++] & 0xFF);
             accSensor.yAis = nAccValue;
 
             nAccValue = (short)((beaconData[nSrvIndex++] & 0xFF) << 8);
-            nAccValue += (beaconData[nSrvIndex++] & 0xFF);
+            nAccValue += (short)(beaconData[nSrvIndex++] & 0xFF);
             accSensor.zAis = nAccValue;
         }else{
             accSensor = null;

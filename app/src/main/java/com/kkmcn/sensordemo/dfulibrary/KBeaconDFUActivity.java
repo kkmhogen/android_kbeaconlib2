@@ -14,12 +14,11 @@ import android.widget.TextView;
 
 import com.kkmcn.kbeaconlib2.KBConnState;
 import com.kkmcn.sensordemo.AppBaseActivity;
-import com.kkmcn.sensordemo.R;
-import com.kkmcn.kbeaconlib2.KBCfgPackage.KBCfgBase;
 import com.kkmcn.kbeaconlib2.KBCfgPackage.KBCfgCommon;
 import com.kkmcn.kbeaconlib2.KBException;
 import com.kkmcn.kbeaconlib2.KBeacon;
 import com.kkmcn.kbeaconlib2.KBeaconsMgr;
+import com.kkmcn.sensordemo.R;
 
 
 import org.json.JSONArray;

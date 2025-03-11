@@ -71,6 +71,7 @@ public class KBCfgHandler {
         kbCfgSensorObjects.put(String.valueOf(KBSensorType.CO2), KBCfgSensorCO2.class);
         kbCfgSensorObjects.put(String.valueOf(KBSensorType.GEO), KBCfgSensorGEO.class);
         kbCfgSensorObjects.put(String.valueOf(KBSensorType.SCAN), KBCfgSensorScan.class);
+        kbCfgSensorObjects.put(String.valueOf(KBSensorType.NFC), KBCfgSensorNFC.class);
     }
 
     public final KBCfgAdvBase getDeviceSlotCfg(int nSlotIndex)

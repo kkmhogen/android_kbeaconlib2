@@ -72,7 +72,7 @@ public class KBAdvPacketAOA extends KBAdvPacketBase{
     }
 
     @SuppressLint("DefaultLocale")
-    public boolean parseAdvPacket(byte[] beaconData)
+    boolean parseAdvPacket(byte[] beaconData)
     {
         super.parseAdvPacket(beaconData);
         if (beaconData.length < MIN_ADV_PACKET_LEN) {

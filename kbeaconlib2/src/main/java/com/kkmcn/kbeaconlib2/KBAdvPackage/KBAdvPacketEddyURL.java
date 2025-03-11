@@ -83,7 +83,7 @@ public class KBAdvPacketEddyURL extends KBAdvPacketBase{
         return decIndex;
     }
 
-    public boolean parseAdvPacket(byte[] beaconData)
+    boolean parseAdvPacket(byte[] beaconData)
     {
         super.parseAdvPacket(beaconData);
         int nSrvIndex = 1;  //skip adv type

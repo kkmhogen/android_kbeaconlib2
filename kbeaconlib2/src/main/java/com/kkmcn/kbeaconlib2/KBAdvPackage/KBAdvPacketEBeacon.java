@@ -35,11 +35,11 @@ public class KBAdvPacketEBeacon extends KBAdvPacketBase{
         return KBAdvType.EBeacon;
     }
 
-    public void setPassword(String password) {
+    void setPassword(String password) {
         this.password = password;
     }
 
-    public boolean parseAdvPacket(byte[] eBeaconData)
+    boolean parseAdvPacket(byte[] eBeaconData)
     {
         super.parseAdvPacket(eBeaconData);
         int nStartIndex = 0;

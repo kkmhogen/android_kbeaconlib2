@@ -2,7 +2,7 @@
 ## Requirements
 Development environment:  
 Android 14  
-minSdkVersion 23
+minSdkVersion 26
 
 ## Installation
 
@@ -10,7 +10,7 @@ The kbeaconlib library can be found on maven center repository. Add it to your p
 
 ```Java
 dependencies {
-   implementation 'com.kkmcn.kbeaconlib2:kbeaconlib2:1.2.9'
+   implementation 'com.kkmcn.kbeaconlib2:kbeaconlib2:1.3.1'
 }
 ```
 

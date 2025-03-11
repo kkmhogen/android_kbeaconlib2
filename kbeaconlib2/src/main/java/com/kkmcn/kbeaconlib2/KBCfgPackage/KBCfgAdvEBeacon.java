@@ -14,7 +14,7 @@ public class KBCfgAdvEBeacon extends KBCfgAdvBase{
     public final static String DEFAULT_UUID = "7777772E-6B6B-6D63-6E2E-636F6D000001";
 
     //    0 AES ECB
-    public final static int  AES_ECB_TYPE = 0;
+    public final static int  AES_ECB_TYPE = 1;
     public final static int  DEFAULT_ENCRYPT_INTERVAL= 0x05;
     public final static int  MIN_ENCRYPT_INTERVAL = 1;
     public final static int  MAX_ENCRYPT_INTERVAL = 100;

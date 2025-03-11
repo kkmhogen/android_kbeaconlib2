@@ -505,7 +505,7 @@ public class KBeaconsMgr {
 
     private void delayReportAdvTimer()
     {
-        if (mCBNtfBeacons.size() > 0)
+        if (!mCBNtfBeacons.isEmpty())
         {
             KBeacon[] beacons = new KBeacon[mCBNtfBeacons.size()];
             mCBNtfBeacons.values().toArray(beacons);

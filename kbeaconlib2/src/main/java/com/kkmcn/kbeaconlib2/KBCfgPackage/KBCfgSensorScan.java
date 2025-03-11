@@ -8,6 +8,13 @@ public class KBCfgSensorScan extends KBCfgSensorBase{
     public static final String JSON_SENSOR_TYPE_SCAN_RSSI = "rssi";
     public static final String JSON_SENSOR_TYPE_SCAN_DUR = "dur";
     public static final String JSON_SENSOR_TYPE_SCAN_MSK = "chMsk";
+
+    public static final String JSON_SENSOR_TYPE_SCAN_INTERVAL = "itvl";
+
+    public static final String JSON_SENSOR_TYPE_MOTION_SCAN_INTERVAL = "mItvl";
+
+    public static final String JSON_SENSOR_TYPE_SCAN_DATA_ADV_SLOT = "aSlot";
+
     public static final String JSON_SENSOR_TYPE_SCAN_MAX = "max";
 
     public static final int MIN_FILTER_RSSI = -100;
@@ -19,12 +26,20 @@ public class KBCfgSensorScan extends KBCfgSensorBase{
     public static final int MIN_SCAN_PERIPHERAL_COUNT = 1;
     public static final int MAX_SCAN_PERIPHERAL_COUNT = 100;
 
+    public static final int MAX_SCAN_INTERVAL = 7200;
+
     //scanMode
     private Integer scanMode;
 
     private Integer scanRssi;
 
     private Integer scanDuration;
+
+    private Integer scanInterval;
+
+    private Integer motionScanInterval;
+
+    private Integer scanResultAdvSlot;
 
     private Integer scanChanelMask;
 
@@ -63,6 +78,34 @@ public class KBCfgSensorScan extends KBCfgSensorBase{
         return scanDuration;
     }
 
+    public Integer getScanInterval() {
+        return scanInterval;
+    }
+
+    //scan interval unit is seconds. the scan interval time must > 2 * scan duration
+    public void setScanInterval(Integer scanInterval) {
+        if (scanInterval >= 0 && scanInterval <= MAX_SCAN_INTERVAL) {
+            this.scanInterval = scanInterval;
+        }
+    }
+
+    public void setScanResultAdvSlot(Integer scanResultAdvSlot) {
+        this.scanResultAdvSlot = scanResultAdvSlot;
+    }
+
+    public Integer getScanResultAdvSlot() {
+        return scanResultAdvSlot;
+    }
+
+    //scan interval when motion detected. the scan interval time must > 2 * scan duration
+    public void setMotionScanInterval(Integer motionScanInterval) {
+        this.motionScanInterval = motionScanInterval;
+    }
+
+    public Integer getMotionScanInterval() {
+        return motionScanInterval;
+    }
+
     //Duration of each Beacon scan of peripheral devices, unit is 10 ms
     //The maximum scanning duration per scan is 600 seconds
     public void setScanDuration(Integer scanDuration) {
@@ -75,8 +118,9 @@ public class KBCfgSensorScan extends KBCfgSensorBase{
         return scanChanelMask;
     }
 
-    //The advertisement channel mask is 3 bit (37,38,39 channel), if the msak bit is 0, then it not advertisement on the channel
-    //for example, if the advChannelMask is 0x3, then the beacon only advertisement on channel 37
+    //The scanning advertisement channel mask is 3 bit, channel 37(bit0), channel 38(bit1)
+    // channel 39(bit2). if the chanel bit is 1, then the Beacon will not scan on the channel
+    //for example, if the advChannelMask is 0x3(0B'011), then the beacon only scan BLE channel 37
     public void setScanChanelMask(Integer advChanelMask) {
         if (advChanelMask < 7) {
             this.scanChanelMask = advChanelMask;
@@ -129,6 +173,24 @@ public class KBCfgSensorScan extends KBCfgSensorBase{
             nUpdateConfigNum++;
         }
 
+        if (dicts.has(JSON_SENSOR_TYPE_SCAN_INTERVAL))
+        {
+            scanInterval = (Integer) dicts.get(JSON_SENSOR_TYPE_SCAN_INTERVAL);
+            nUpdateConfigNum++;
+        }
+
+        if (dicts.has(JSON_SENSOR_TYPE_MOTION_SCAN_INTERVAL))
+        {
+            motionScanInterval = (Integer) dicts.get(JSON_SENSOR_TYPE_MOTION_SCAN_INTERVAL);
+            nUpdateConfigNum++;
+        }
+
+        if (dicts.has(JSON_SENSOR_TYPE_SCAN_DATA_ADV_SLOT))
+        {
+            scanResultAdvSlot = (Integer) dicts.get(JSON_SENSOR_TYPE_SCAN_DATA_ADV_SLOT);
+            nUpdateConfigNum++;
+        }
+
         if (dicts.has(JSON_SENSOR_TYPE_SCAN_MAX))
         {
             scanMax = dicts.getInt(JSON_SENSOR_TYPE_SCAN_MAX);
@@ -161,6 +223,21 @@ public class KBCfgSensorScan extends KBCfgSensorBase{
         if (scanChanelMask != null)
         {
             configDicts.put(JSON_SENSOR_TYPE_SCAN_MSK, scanChanelMask);
+        }
+
+        if (scanInterval != null)
+        {
+            configDicts.put(JSON_SENSOR_TYPE_SCAN_INTERVAL, scanInterval);
+        }
+
+        if (motionScanInterval != null)
+        {
+            configDicts.put(JSON_SENSOR_TYPE_MOTION_SCAN_INTERVAL, motionScanInterval);
+        }
+
+        if (scanResultAdvSlot != null)
+        {
+            configDicts.put(JSON_SENSOR_TYPE_SCAN_DATA_ADV_SLOT, scanResultAdvSlot);
         }
 
         if (scanMax != null)

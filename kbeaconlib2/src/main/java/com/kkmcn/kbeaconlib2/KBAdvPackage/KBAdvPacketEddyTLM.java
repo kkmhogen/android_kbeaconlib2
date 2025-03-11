@@ -67,7 +67,7 @@ public class KBAdvPacketEddyTLM extends KBAdvPacketBase{
         return tlmType;
     }
 
-    public boolean parseAdvPacket(byte[] beaconData)
+    boolean parseAdvPacket(byte[] beaconData)
     {
         super.parseAdvPacket(beaconData);
         int nSrvIndex = 1;  //skip adv type
