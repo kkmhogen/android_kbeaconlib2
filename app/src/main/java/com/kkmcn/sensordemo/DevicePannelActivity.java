@@ -240,6 +240,8 @@ public class DevicePannelActivity extends AppBaseActivity implements View.OnClic
             }
         } else if (id == R.id.ringDevice) {//ringDevice();
             ringDevice();
+
+            //mBeacon.readRemoteRssi((rssi, status) -> Log.v(LOG_TAG, "read rssi value:" + rssi));
         }
     }
 
