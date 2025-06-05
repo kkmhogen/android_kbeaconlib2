@@ -336,11 +336,9 @@ public class KBAdvPacketSensor extends KBAdvPacketBase{
                 return false;
             }
 
-            if ((beaconData[nSrvIndex++] & 0x1) > 0)
-            {
-                newTHRecordNum = ((beaconData[nSrvIndex++] & 0xFF) << 8);
-                newTHRecordNum += (beaconData[nSrvIndex++] & 0xFF);
-            }
+            byte countMask = beaconData[nSrvIndex++];
+            newTHRecordNum = ((beaconData[nSrvIndex++] & 0xFF) << 8);
+            newTHRecordNum += (beaconData[nSrvIndex++] & 0xFF);
         }else{
             newTHRecordNum = null;
         }

@@ -129,6 +129,8 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
     private final BluetoothGattCallback mGattCallback;
     private BluetoothGatt mGattConnection;
 
+    private ReadRssiCallback mReadRssiCallback;
+
     //indication bluetooth device is busy
     private boolean mActionDoing;
 
@@ -209,6 +211,10 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
 
     public interface SensorCommandCallback {
         void onCommandComplete(boolean bReadResult, Object readPara, KBException error);
+    }
+
+    public interface ReadRssiCallback {
+        void onReadComplete(int rssi, int status);
     }
 
     public KBeacon(String strMacAddress, Context ctx)
@@ -1092,6 +1098,18 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         this.startWriteCfgValue(data);
     }
 
+    //read rssi value
+    @SuppressLint("MissingPermission")
+    public boolean readRemoteRssi(ReadRssiCallback readCallback)
+    {
+        if (!isConnected()){
+            return false;
+        }
+
+        mReadRssiCallback = readCallback;
+        return mGattConnection.readRemoteRssi();
+    }
+
     @SuppressLint("MissingPermission")
     private void clearGattResource(int nReason)
     {
@@ -1912,6 +1930,13 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
                 }else{
                     Log.e(LOG_TAG, mac + " onConnectionStateChange detected unknown state:" + newState );
                 }
+            }
+        }
+		
+        @Override
+        public void onReadRemoteRssi(BluetoothGatt gatt, int rssi, int status) {
+            if (mReadRssiCallback != null){
+                mReadRssiCallback.onReadComplete( rssi, status);
             }
         }
 

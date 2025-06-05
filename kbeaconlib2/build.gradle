@@ -5,6 +5,7 @@ plugins {
 android {
     compileSdk 34
 
+    namespace = "com.kkmcn.kbeaconlib2.kbeaconlib2"
     defaultConfig {
         minSdk 24
         targetSdkVersion 34
@@ -21,7 +22,7 @@ android {
         sourceCompatibility "11"
         targetCompatibility "11"
     }
-    namespace = "com.kkmcn.kbeaconlib2.kbeaconlib2"
+
     publishing {
         singleVariant("release") {
             withSourcesJar()
