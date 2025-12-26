@@ -21,7 +21,10 @@ public class KBAdvPacketSensor extends KBAdvPacketBase{
     private final  static int SENSOR_MASK_CO2 = 0x200;
     private final  static int SENSOR_MASK_RECORD_NUM = 0x400;
 
-    private final static int ENCRYPT_SENSOR_TYPE = 0x06;
+    private final static int ENCRYPT_SENSOR_V1_TYPE = 0x06;
+    private final static int ENCRYPT_SENSOR_V2_TYPE = 0x07;
+    private final static int KKM_SENSOR_V2_TYPE = 0x24;
+    private final static int KKM_SENSOR_V1_TYPE = 0x21;
 
     private KBAccSensorValue accSensor;
 
@@ -29,7 +32,11 @@ public class KBAdvPacketSensor extends KBAdvPacketBase{
 
     private Integer pirIndication;
 
+    private Integer model;
+
     private Float temperature;
+
+    private Byte temperature0;
 
     private Float humidity;
 
@@ -44,7 +51,9 @@ public class KBAdvPacketSensor extends KBAdvPacketBase{
     private Integer co2ElapseSec;
     private Integer co2;
 
-    private Integer newTHRecordNum;
+
+    private Byte recordType;
+    private Integer newRecordNum;
 
     private Long utcSecCount;
 
@@ -70,6 +79,11 @@ public class KBAdvPacketSensor extends KBAdvPacketBase{
     public Float getTemperature()
     {
         return temperature;
+    }
+
+    public Byte getCpuTemperature()
+    {
+        return temperature0;
     }
 
     public Float getHumidity()
@@ -115,8 +129,12 @@ public class KBAdvPacketSensor extends KBAdvPacketBase{
         return isEncryptAdv;
     }
 
-    public Integer getNewTHRecordNum() {
-        return newTHRecordNum;
+    public Integer getNewRecordNum() {
+        return newRecordNum;
+    }
+
+    public Byte getRecordType() {
+        return recordType;
     }
 
     public Integer getCo2ElapseSec() {
@@ -172,25 +190,169 @@ public class KBAdvPacketSensor extends KBAdvPacketBase{
         int nSrvIndex = 0;
         byte advType = beaconData[nSrvIndex++];
 
-        //get sensor mask
-        int sensorMaskHigh = ((beaconData[nSrvIndex++] & 0xFF) << 8);
-        nSensorMask = sensorMaskHigh + (beaconData[nSrvIndex++] & 0xFF);
-
         //decrypt content
-        if (ENCRYPT_SENSOR_TYPE == advType)
+        if (ENCRYPT_SENSOR_V1_TYPE == advType)
         {
+            //get sensor mask
+            int sensorMaskHigh = ((beaconData[nSrvIndex++] & 0xFF) << 8);
+            nSensorMask = sensorMaskHigh + (beaconData[nSrvIndex++] & 0xFF);
+
+            //decrypt data
             plainData = decryptMD5Data(nSrvIndex, beaconData);
             isEncryptAdv = true;
+
+            return parseSensorData(nSensorMask, plainData);
         }
-        else
+        else if (KKM_SENSOR_V1_TYPE == advType)
         {
+            //get sensor mask
+            int sensorMaskHigh = ((beaconData[nSrvIndex++] & 0xFF) << 8);
+            nSensorMask = sensorMaskHigh + (beaconData[nSrvIndex++] & 0xFF);
+
+            //get data
             int dataLen = beaconData.length - nSrvIndex;
             plainData = new byte[dataLen];
             System.arraycopy( beaconData, nSrvIndex, plainData,0,dataLen);
             isEncryptAdv = false;
+
+            return parseSensorData(nSensorMask, plainData);
+        }
+        if (ENCRYPT_SENSOR_V2_TYPE == advType)
+        {
+            model = (beaconData[nSrvIndex++] & 0xFF);
+
+            //decrypt data
+            plainData = decryptMD5Data(nSrvIndex, beaconData);
+            isEncryptAdv = true;
+
+            return parseSensorV2Data(plainData);
+        }
+        else if (KKM_SENSOR_V2_TYPE == advType)
+        {
+            model = (beaconData[nSrvIndex++] & 0xFF);
+
+            int dataLen = beaconData.length - nSrvIndex;
+            plainData = new byte[dataLen];
+            System.arraycopy( beaconData, nSrvIndex, plainData,0,dataLen);
+            isEncryptAdv = false;
+
+            return parseSensorV2Data(plainData);
         }
 
-        return parseSensorData(nSensorMask, plainData);
+        return false;
+    }
+
+    private boolean parseSensorV2Data(byte[] beaconData)
+    {
+        int nSrvIndex = 0;
+
+        //battery level
+        if (nSrvIndex > (beaconData.length - 2))
+        {
+            return false;
+        }
+        int nBatteryLvs = (beaconData[nSrvIndex++] & 0xFF);
+        nBatteryLvs = (nBatteryLvs << 8);
+        nBatteryLvs += (beaconData[nSrvIndex++] & 0xFF);
+        batteryLevel= nBatteryLvs;
+
+        //chip temp
+        if (nSrvIndex > (beaconData.length - 1))
+        {
+            return false;
+        }
+        temperature0 = beaconData[nSrvIndex++];
+        temperature = null;
+        humidity = null;
+        accSensor = null;
+        alarmStatus = null;
+        pirIndication = null;
+        vocElapseSec = null;
+        voc = null;
+        co2ElapseSec = null;
+        co2 = null;
+        newRecordNum = null;
+        recordType = null;
+
+        //parse sensor
+        int totalLen = beaconData.length;
+        while (nSrvIndex + 3 <= totalLen)
+        {
+            byte sensorDataLen = beaconData[nSrvIndex++];
+            byte sensorType = beaconData[nSrvIndex++];
+            sensorDataLen--;
+            if (nSrvIndex + sensorDataLen > totalLen)
+            {
+                break;
+            }
+
+            if (sensorType == 0x2 && sensorDataLen >= 2)  //temperature
+            {
+                short nTempValue = (short)((beaconData[nSrvIndex] & 0xFF) << 8);
+                nTempValue += (short)(beaconData[nSrvIndex + 1] & 0xFF);
+                temperature = nTempValue / 10.0f;
+            }
+            else if (sensorType == 0x3 && sensorDataLen >= 3)  //temperature and humidity
+            {
+                short nTempValue = (short)((beaconData[nSrvIndex] & 0xFF) << 8);
+                nTempValue += (short)(beaconData[nSrvIndex + 1] & 0xFF);
+                temperature = nTempValue / 10.0f;
+                humidity = beaconData[nSrvIndex + 2] * 1.0f;
+            }
+            else if (sensorType == 0x4 && sensorDataLen >= 6)  //acc
+            {
+                accSensor = new KBAccSensorValue();
+                short nAccValue = (short)((beaconData[nSrvIndex] & 0xFF) << 8);
+                nAccValue += (short)(beaconData[nSrvIndex + 1] & 0xFF);
+                accSensor.xAis = nAccValue;
+
+                nAccValue = (short)((beaconData[nSrvIndex + 2] & 0xFF) << 8);
+                nAccValue += (short)(beaconData[nSrvIndex + 3] & 0xFF);
+                accSensor.yAis = nAccValue;
+
+                nAccValue = (short)((beaconData[nSrvIndex + 4] & 0xFF) << 8);
+                nAccValue += (short)(beaconData[nSrvIndex + 5] & 0xFF);
+                accSensor.zAis = nAccValue;
+            }
+            else if (sensorType == 0x5 && sensorDataLen >= 1)  //alarm
+            {
+                alarmStatus = (int)beaconData[nSrvIndex];
+            }
+            else if (sensorType == 0x6 && sensorDataLen >= 1)  //pir
+            {
+                pirIndication = (int)beaconData[nSrvIndex];
+            }
+            else if (sensorType == 0x7 && sensorDataLen >= 2)  //light lux
+            {
+                luxValue = ((beaconData[nSrvIndex] & 0xFF) << 8);
+                luxValue += (beaconData[nSrvIndex + 1] & 0xFF);
+            }
+            else if (sensorType == 0x8 && sensorDataLen >= 5)
+            {
+                vocElapseSec = (beaconData[nSrvIndex] & 0xFF) * 10;
+                voc = ((beaconData[nSrvIndex + 1] & 0xFF) << 8);
+                voc += (beaconData[nSrvIndex + 2] & 0xFF);
+
+                nox = ((beaconData[nSrvIndex + 3] & 0xFF) << 8);
+                nox += (beaconData[nSrvIndex + 4] & 0xFF);
+            }
+            else if (sensorType == 0x9 && sensorDataLen >= 3)
+            {
+                co2ElapseSec = (beaconData[nSrvIndex] & 0xFF) * 10;
+                co2 = ((beaconData[nSrvIndex + 1] & 0xFF) << 8);
+                co2 += (beaconData[nSrvIndex + 2] & 0xFF);
+            }
+            else if (sensorType == 0xA && sensorDataLen >= 3)
+            {
+                recordType = beaconData[nSrvIndex];
+                newRecordNum = ((beaconData[nSrvIndex + 1] & 0xFF) << 8);
+                newRecordNum += (beaconData[nSrvIndex + 2] & 0xFF);
+            }
+
+            nSrvIndex += sensorDataLen;
+        }
+
+        return true;
     }
 
     private boolean parseSensorData(int nSensorMask, byte[] beaconData)
@@ -221,8 +383,8 @@ public class KBAdvPacketSensor extends KBAdvPacketBase{
                 return false;
             }
 
-            Byte tempHigh = beaconData[nSrvIndex++];
-            Byte tempLow = beaconData[nSrvIndex++];
+            byte tempHigh = beaconData[nSrvIndex++];
+            byte tempLow = beaconData[nSrvIndex++];
             temperature = KBUtility.signedBytes2Float(tempHigh, tempLow);
         }else{
             temperature = null;
@@ -235,14 +397,19 @@ public class KBAdvPacketSensor extends KBAdvPacketBase{
                 return false;
             }
 
-            Byte humHigh = beaconData[nSrvIndex++];
-            Byte humLow = beaconData[nSrvIndex++];
-            humidity = KBUtility.signedBytes2Float(humHigh, humLow);
-            if (humidity < 0) {
-                if(temperature != null){
-                  temperature = (-1 - humidity)*100 + temperature;
+            byte humHigh = beaconData[nSrvIndex++];
+            byte humLow = beaconData[nSrvIndex++];
+            if (humHigh >= 0)
+            {
+                humidity = KBUtility.signedBytes2Float(humHigh, humLow);
+            }
+            else
+            {
+                if (humHigh < -2 && temperature != null) {
+                    temperature = (-20 - humHigh) * 100 + temperature;
                 }
                 humidity = null;
+                temperature0 = humLow;
             }
         }else{
             humidity = null;
@@ -336,11 +503,11 @@ public class KBAdvPacketSensor extends KBAdvPacketBase{
                 return false;
             }
 
-            byte countMask = beaconData[nSrvIndex++];
-            newTHRecordNum = ((beaconData[nSrvIndex++] & 0xFF) << 8);
-            newTHRecordNum += (beaconData[nSrvIndex++] & 0xFF);
+            recordType = beaconData[nSrvIndex++];
+            newRecordNum = ((beaconData[nSrvIndex++] & 0xFF) << 8);
+            newRecordNum += (beaconData[nSrvIndex++] & 0xFF);
         }else{
-            newTHRecordNum = null;
+            newRecordNum = null;
         }
 
         return true;

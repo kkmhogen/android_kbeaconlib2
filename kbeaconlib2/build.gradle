@@ -3,12 +3,12 @@ plugins {
 }
 
 android {
-    compileSdk 34
+    compileSdk 35
 
     namespace = "com.kkmcn.kbeaconlib2.kbeaconlib2"
     defaultConfig {
         minSdk 24
-        targetSdkVersion 34
+        targetSdkVersion 35
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
         consumerProguardFiles "consumer-rules.pro"
     }

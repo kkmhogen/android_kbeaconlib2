@@ -113,6 +113,7 @@ public class DevicePannelActivity extends AppBaseActivity implements View.OnClic
 
         mPref = SharePreferenceMgr.shareInstance(this);
         setContentView(R.layout.device_pannel);
+        setupEdgeToEdgeWithInsets();
         mBeaconStatus = (TextView)findViewById(R.id.connection_states);
         mAdvType = (TextView) findViewById(R.id.beaconAdvType);
         mBeaconModel = (TextView) findViewById(R.id.beaconModle);
@@ -1454,7 +1455,7 @@ public class DevicePannelActivity extends AppBaseActivity implements View.OnClic
             int ringType = 0x2;   //LED flash default
 
             //check if need beep
-            if (cfgCommon != null && !cfgCommon.isSupportBeep())
+            if (cfgCommon != null && cfgCommon.isSupportBeep())
             {
                 ringType = ringType | 0x1;
             }

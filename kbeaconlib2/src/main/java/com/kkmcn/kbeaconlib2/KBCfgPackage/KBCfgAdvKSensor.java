@@ -19,6 +19,8 @@ public class KBCfgAdvKSensor extends KBCfgAdvBase{
 
     public static final String JSON_FIELD_AES_TYPE = "aes";
 
+    public static final String JSON_FIELD_ADV_VER = "ver";
+
     private Boolean htSensorInclude;
     private Boolean axisSensorInclude;
     private Boolean lightSensorInclude;
@@ -27,6 +29,7 @@ public class KBCfgAdvKSensor extends KBCfgAdvBase{
     private Boolean co2SensorInclude;
     private Boolean recordInclude;
     private Boolean geoSensorInclude;
+    private Integer advVersion;
 
     private Integer aesType;
 
@@ -112,6 +115,14 @@ public class KBCfgAdvKSensor extends KBCfgAdvBase{
         return aesType;
     }
 
+    public Integer getAdvVersion() {
+        return advVersion;
+    }
+
+    public void setAdvVersion(Integer advVersion) {
+        this.advVersion = advVersion;
+    }
+
     public int updateConfig(JSONObject dicts) throws JSONException
     {
         int nUpdateConfigNum = super.updateConfig(dicts);
@@ -174,6 +185,13 @@ public class KBCfgAdvKSensor extends KBCfgAdvBase{
             aesType =  dicts.getInt(JSON_FIELD_AES_TYPE);
             nUpdateConfigNum++;
         }
+
+        if (dicts.has(JSON_FIELD_ADV_VER)){
+            advVersion =  dicts.getInt(JSON_FIELD_ADV_VER);
+            nUpdateConfigNum++;
+        }
+
+
         return nUpdateConfigNum;
     }
 
@@ -229,6 +247,11 @@ public class KBCfgAdvKSensor extends KBCfgAdvBase{
         if (aesType != null)
         {
             configDicts.put(JSON_FIELD_AES_TYPE, aesType);
+        }
+
+        if (advVersion != null)
+        {
+            configDicts.put(JSON_FIELD_ADV_VER, advVersion);
         }
 
         return configDicts;
