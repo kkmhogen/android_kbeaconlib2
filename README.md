@@ -10,7 +10,7 @@ The kbeaconlib library can be found on maven center repository. Add it to your p
 
 ```Java
 dependencies {
-   implementation 'com.kkmcn.kbeaconlib2:kbeaconlib2:1.3.1'
+   implementation 'com.kkmcn.kbeaconlib2:kbeaconlib2:1.3.5'
 }
 ```
 
