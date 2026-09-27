@@ -11,6 +11,7 @@ import android.bluetooth.BluetoothProfile;
 import android.bluetooth.le.ScanRecord;
 import android.content.Context;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
 
@@ -392,10 +393,16 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
     @SuppressLint("MissingPermission")
     public boolean connectEnhanced(String password, int timeout, KBConnPara connPara, ConnStateDelegate connectCallback)
     {
-        if (state == KBConnState.Disconnected && password.length() <= 16 && password.length() >= 8)
+        if (state == KBConnState.Disconnected
+                && mBleDevice != null
+                && password != null
+                && password.length() <= 16 && password.length() >= 8)
         {
             delegate = connectCallback;
             mGattConnection = mBleDevice.connectGatt(mContext, false, mGattCallback, BluetoothDevice.TRANSPORT_LE);
+            if (mGattConnection == null){
+                return false;
+            }
             Log.v(LOG_TAG, "start connect to device " + mac);
             hadRequestMTU = false;
             mPassword = password;
@@ -1098,7 +1105,6 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         this.startWriteCfgValue(data);
     }
 
-    //read rssi value
     @SuppressLint("MissingPermission")
     public boolean readRemoteRssi(ReadRssiCallback readCallback)
     {
@@ -1764,7 +1770,7 @@ public class KBeacon implements KBAuthHandler.KBAuthDelegate{
         return characteristic;
     }
 
-    private final Handler mMsgHandler = new Handler(new Handler.Callback() {
+    private final Handler mMsgHandler = new Handler(Looper.getMainLooper(), new Handler.Callback() {
         @SuppressLint("MissingPermission")
         @Override
         public boolean handleMessage(@NonNull Message msg) {

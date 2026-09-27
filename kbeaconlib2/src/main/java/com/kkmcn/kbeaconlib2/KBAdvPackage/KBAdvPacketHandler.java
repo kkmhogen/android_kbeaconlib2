@@ -88,12 +88,8 @@ public class KBAdvPacketHandler {
                 if (beaconData != null) {
                     if ((beaconData[0] == 0x24 || beaconData[0] == 0x6 || beaconData[0] == 0x7) && beaconData.length >= MIN_SENSOR_ADV_LEN) {
                         nAdvType = KBAdvType.Sensor;
-                    } else if (beaconData[0] == 0x22 && beaconData.length >= MIN_SYSTEM_ADV_LEN) {
-                        nAdvType = KBAdvType.System;
                     } else if (beaconData[0] == 0x03) {
                         nAdvType = KBAdvType.EBeacon;
-                    } else if (beaconData[0] == 0x04) {
-                        nAdvType = KBAdvType.AOA;
                     }
                 } else  {
                     beaconData = record.getManufacturerSpecificData(KBUtility.OTHER_MANUFACTURE_ID);

@@ -106,6 +106,7 @@ public class KBAuthHandler {
         if (byRcvNtfValue.length < 1) {
             Log.e(LOG_TAG, "receive auth data length error");
             delegate.authStateChange(Failed);
+            return;
         }
 
         if (byRcvNtfValue[0] == AUTH_PHASE1_APP || byRcvNtfValue[0] == AUTH_MIN_MTU_ALOGRIM_PH1) {

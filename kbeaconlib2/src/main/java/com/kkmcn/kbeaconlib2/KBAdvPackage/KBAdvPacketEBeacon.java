@@ -15,7 +15,7 @@ public class KBAdvPacketEBeacon extends KBAdvPacketBase{
 
     private Integer refTxPower = -59;
 
-    private String password;
+    private String password = "0000000000000000";
 
     public String getUuid()
     {

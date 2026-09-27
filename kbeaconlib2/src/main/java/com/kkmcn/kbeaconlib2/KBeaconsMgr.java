@@ -17,6 +17,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Build;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
 
@@ -56,6 +57,10 @@ public class KBeaconsMgr {
 
     private Integer scanMinRssiFilter = -100;
 
+    private int mScanMode = ScanSettings.SCAN_MODE_BALANCED;
+    // false: legacy + extended PHY dual scan when hardware supports; true: legacy only
+    private boolean mLegacyOnlyScan = false;
+
     private final Context mContext;
 
     private BluetoothManager mBluetoothManager;
@@ -72,9 +77,11 @@ public class KBeaconsMgr {
 
     private IntentFilter mIntentFilter;
 
-    private NPhoneScancallback mNPhoneCallback;
+    private NPhoneScancallback mLegacyScanCallback;
+    private NPhoneScancallback mExtendedScanCallback;
 
-    private boolean mIsScanning;
+    private boolean mIsLegacyScanning;
+    private boolean mIsExtendedScanning;
 
     @SuppressLint("StaticFieldLeak")
     private static KBeaconsMgr sharedStaticBeaconMgr = null;
@@ -141,14 +148,20 @@ public class KBeaconsMgr {
         }
 
         mIntentFilter = makeGattUpdateIntentFilter();
-        mContext.registerReceiver(mReceiver, mIntentFilter);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            // Android 13+ requires explicit export flag; NOT_EXPORTED is enough for system broadcasts
+            mContext.registerReceiver(mReceiver, mIntentFilter, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            mContext.registerReceiver(mReceiver, mIntentFilter);
+        }
         mCbAllBeacons = new HashMap<>(100);
 
         mCbKBeacons = new HashMap<>(50);
 
         mCBNtfBeacons = new HashMap<>(10);
 
-        mNPhoneCallback = new NPhoneScancallback();
+        mLegacyScanCallback = new NPhoneScancallback("legacy");
+        mExtendedScanCallback = new NPhoneScancallback("extended");
 
         return true;
     }
@@ -233,32 +246,25 @@ public class KBeaconsMgr {
 
     public void setScanMode(int nScanMode)
     {
-        int scanMode = SCAN_MODE_BALANCED;
         if (nScanMode == SCAN_MODE_BALANCED || nScanMode == SCAN_MODE_LOW_LATENCY
         || nScanMode == SCAN_MODE_LOW_POWER || nScanMode == SCAN_MODE_OPPORTUNISTIC) {
-            scanMode = nScanMode;
+            mScanMode = nScanMode;
         }
 
         if (scanSetting == null) {
-            scanSetting = new ScanSettings.Builder().setScanMode(scanMode);
+            scanSetting = new ScanSettings.Builder().setScanMode(mScanMode);
         }
     }
 
-    //default is legacy scan mode
+    /**
+     * Control scan PHY coverage.
+     * @param legacyOnly true: legacy advertisements only (iBeacon, etc.);
+     *                   false: legacy scan plus a second extended-PHY scan when supported.
+     */
     @TargetApi(Build.VERSION_CODES.O)
-    public void setScanLegacyMode(boolean isLegacyMode)
+    public void setScanLegacyMode(boolean legacyOnly)
     {
-        if (!KBUtility.isMOhone()){
-            return;
-        }
-
-        if (scanSetting == null) {
-            scanSetting = new ScanSettings.Builder();
-        }
-        scanSetting.setLegacy(isLegacyMode);
-        if (!isLegacyMode){
-            scanSetting.setPhy(ScanSettings.PHY_LE_ALL_SUPPORTED);
-        }
+        mLegacyOnlyScan = legacyOnly;
     }
 
     @TargetApi(Build.VERSION_CODES.O)
@@ -307,57 +313,93 @@ public class KBeaconsMgr {
 
         try {
             BluetoothLeScanner scaner = mBluetoothAdapter.getBluetoothLeScanner();
-
-            if (mIsScanning) {
-                Log.e(TAG, "current is scan, now start scan again");
-                scaner.stopScan(mNPhoneCallback);
-                mIsScanning = false;
+            if (scaner == null) {
+                return SCAN_ERROR_UNKNOWN;
             }
 
-            if (this.scanSetting == null){
-                scanSetting = new ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_BALANCED);
+            stopScanning();
+
+            List<ScanFilter> filterList = buildScanFilters();
+
+            ScanSettings legacySettings = new ScanSettings.Builder()
+                    .setScanMode(mScanMode)
+                    .setLegacy(true)
+                    .build();
+            scaner.startScan(filterList, legacySettings, mLegacyScanCallback);
+            mIsLegacyScanning = true;
+            Log.i(TAG, "legacy BLE scan started");
+
+            if (!mLegacyOnlyScan && isExtendedPhyScanSupported()) {
+                try {
+                    ScanSettings extendedSettings = new ScanSettings.Builder()
+                            .setScanMode(mScanMode)
+                            .setLegacy(false)
+                            .setPhy(ScanSettings.PHY_LE_ALL_SUPPORTED)
+                            .build();
+                    scaner.startScan(filterList, extendedSettings, mExtendedScanCallback);
+                    mIsExtendedScanning = true;
+                    Log.i(TAG, "extended PHY BLE scan started");
+                } catch (RuntimeException extendedExcp) {
+                    Log.w(TAG, "extended PHY scan not started, legacy scan continues", extendedExcp);
+                }
             }
 
-            //scan filter
-            List<ScanFilter> filterList = new ArrayList<>(2);
-            ScanFilter.Builder filter1 = new ScanFilter.Builder().setServiceUuid(KBUtility.PARCE_UUID_EDDYSTONE);
-            ScanFilter.Builder filter2 = new ScanFilter.Builder().setServiceUuid(KBUtility.PARCE_UUID_EXT_DATA);
-            byte[] iBeaconFilter = {0x02, 0x15};
-            ScanFilter.Builder filter3 = new ScanFilter.Builder().setManufacturerData(KBUtility.APPLE_MANUFACTURE_ID,
-                    iBeaconFilter);
-
-            ScanFilter.Builder filter4 = new ScanFilter.Builder().setManufacturerData(KBUtility.KKM_MANUFACTURE_ID,
-                    new byte[0]);
-            filterList.add(filter1.build());
-            filterList.add(filter2.build());
-            filterList.add(filter3.build());
-            filterList.add(filter4.build());
-
-            scaner.startScan(filterList, scanSetting.build(), mNPhoneCallback);
-            mIsScanning = true;
-
-            Log.e(TAG, "ble start scan success fully");
+            Log.i(TAG, "BLE scan started (legacy=" + mIsLegacyScanning + ", extended=" + mIsExtendedScanning + ")");
         }catch (RuntimeException excp)
         {
-            Log.e(TAG, "start scan error" + excp.getCause());
+            Log.e(TAG, "start scan error", excp);
             return SCAN_ERROR_UNKNOWN;
         }
 
         return 0;
     }
 
+    private List<ScanFilter> buildScanFilters() {
+        List<ScanFilter> filterList = new ArrayList<>(4);
+        ScanFilter.Builder filter1 = new ScanFilter.Builder().setServiceUuid(KBUtility.PARCE_UUID_EDDYSTONE);
+        ScanFilter.Builder filter2 = new ScanFilter.Builder().setServiceUuid(KBUtility.PARCE_UUID_EXT_DATA);
+        byte[] iBeaconFilter = {0x02, 0x15};
+        ScanFilter.Builder filter3 = new ScanFilter.Builder().setManufacturerData(KBUtility.APPLE_MANUFACTURE_ID,
+                iBeaconFilter);
+        ScanFilter.Builder filter4 = new ScanFilter.Builder().setManufacturerData(KBUtility.KKM_MANUFACTURE_ID,
+                new byte[0]);
+        filterList.add(filter1.build());
+        filterList.add(filter2.build());
+        filterList.add(filter3.build());
+        filterList.add(filter4.build());
+        return filterList;
+    }
+
+    @TargetApi(Build.VERSION_CODES.O)
+    private boolean isExtendedPhyScanSupported() {
+        if (!KBUtility.isMOhone()) {
+            return false;
+        }
+        return mBluetoothAdapter.isLeCodedPhySupported()
+                || (mBluetoothAdapter.isLe2MPhySupported()
+                && mBluetoothAdapter.isLeExtendedAdvertisingSupported());
+    }
+
     public boolean isScanning()
     {
-        return mIsScanning;
+        return mIsLegacyScanning || mIsExtendedScanning;
     }
 
     public void stopScanning()
     {
         BluetoothLeScanner scaner = mBluetoothAdapter.getBluetoothLeScanner();
-        if (mIsScanning) {
-            Log.e(TAG, "current is scan, now stop scanning");
-            scaner.stopScan(mNPhoneCallback);
-            mIsScanning = false;
+        if (scaner == null) {
+            return;
+        }
+        if (mIsLegacyScanning) {
+            Log.i(TAG, "stop legacy BLE scan");
+            scaner.stopScan(mLegacyScanCallback);
+            mIsLegacyScanning = false;
+        }
+        if (mIsExtendedScanning) {
+            Log.i(TAG, "stop extended PHY BLE scan");
+            scaner.stopScan(mExtendedScanCallback);
+            mIsExtendedScanning = false;
         }
     }
 
@@ -396,6 +438,12 @@ public class KBeaconsMgr {
 
     private class NPhoneScancallback extends ScanCallback
     {
+        private final String scanTag;
+
+        NPhoneScancallback(String scanTag) {
+            this.scanTag = scanTag;
+        }
+
         public void onScanResult(int callbackType, ScanResult result) {
             if (result != null) {
                 onDeviceFound(result);
@@ -408,14 +456,19 @@ public class KBeaconsMgr {
                     onScanResult(10, rslt);
                 }
             }else{
-                Log.e(TAG, "Start N scan found 0 result");
+                Log.e(TAG, "Scan [" + scanTag + "] batch found 0 result");
             }
         }
 
         public void onScanFailed(int errorCode) {
-            Log.e(TAG, "Start N scan failed:" + errorCode);
-            if (delegate != null){
-                delegate.onScanFailed(errorCode);
+            Log.e(TAG, "Scan [" + scanTag + "] failed:" + errorCode);
+            if ("legacy".equals(scanTag)) {
+                mIsLegacyScanning = false;
+                if (delegate != null){
+                    delegate.onScanFailed(errorCode);
+                }
+            } else {
+                mIsExtendedScanning = false;
             }
         }
     }
@@ -431,8 +484,9 @@ public class KBeaconsMgr {
 
         boolean bFilter = true;
         boolean bNameFilterEnable = true, bMacFilterEnable = true;
-        if (scanNameFilter != null && !scanNameFilter.isEmpty()) {
-            String strDevName = rslt.getDevice().getName();
+        ScanRecord record = rslt.getScanRecord();
+        if (scanNameFilter != null && !scanNameFilter.isEmpty() && record != null) {
+            String strDevName = record.getDeviceName();
             if (strDevName != null){
                 if (nameFilterIgnoreCase)
                 {
@@ -477,7 +531,7 @@ public class KBeaconsMgr {
         mMsgHandler.sendMessage(msg);
     }
 
-    private final Handler mMsgHandler = new Handler(new Handler.Callback() {
+    private final Handler mMsgHandler = new Handler(Looper.getMainLooper(), new Handler.Callback() {
         @Override
         public boolean handleMessage(Message msg) {
             switch (msg.what) {

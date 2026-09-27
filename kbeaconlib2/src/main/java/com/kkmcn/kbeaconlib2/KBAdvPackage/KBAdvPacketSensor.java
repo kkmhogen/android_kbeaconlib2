@@ -57,7 +57,7 @@ public class KBAdvPacketSensor extends KBAdvPacketBase{
 
     private Long utcSecCount;
 
-    private String password;
+    private String password = "0000000000000000";
 
     private boolean isEncryptAdv;
 
@@ -247,7 +247,7 @@ public class KBAdvPacketSensor extends KBAdvPacketBase{
         int nSrvIndex = 0;
 
         //battery level
-        if (nSrvIndex > (beaconData.length - 2))
+        if (beaconData == null || nSrvIndex > (beaconData.length - 2))
         {
             return false;
         }
@@ -316,11 +316,11 @@ public class KBAdvPacketSensor extends KBAdvPacketBase{
             }
             else if (sensorType == 0x5 && sensorDataLen >= 1)  //alarm
             {
-                alarmStatus = (int)beaconData[nSrvIndex];
+                alarmStatus = (int)(beaconData[nSrvIndex] & 0xFF);
             }
             else if (sensorType == 0x6 && sensorDataLen >= 1)  //pir
             {
-                pirIndication = (int)beaconData[nSrvIndex];
+                pirIndication = (int)(beaconData[nSrvIndex] & 0xFF);
             }
             else if (sensorType == 0x7 && sensorDataLen >= 2)  //light lux
             {
@@ -442,7 +442,7 @@ public class KBAdvPacketSensor extends KBAdvPacketBase{
             if (nSrvIndex > (beaconData.length - 1)) {
                 return false;
             }
-            alarmStatus = (int)beaconData[nSrvIndex++];
+            alarmStatus = (int)(beaconData[nSrvIndex++] & 0xFF);
         }else{
             alarmStatus = null;
         }
@@ -451,7 +451,7 @@ public class KBAdvPacketSensor extends KBAdvPacketBase{
             if (nSrvIndex > (beaconData.length - 1)) {
                 return false;
             }
-            pirIndication = (int)beaconData[nSrvIndex++];
+            pirIndication = (int)(beaconData[nSrvIndex++] & 0xFF);
         }else{
             pirIndication = null;
         }

@@ -37,6 +37,14 @@ public class KBCfgCommon extends KBCfgBase{
     public final static int ADV_CHANNEL_38_MASK = 0x2;
     public final static int ADV_CHANNEL_39_MASK = 0x1;
 
+    //adv capibility
+    public final static int ADV_KSENSOR_CAPABILITY = 0x1;
+    public final static int ADV_UID_CAPABILITY = 0x2;
+    public final static int ADV_IBEACON_CAPABILITY = 0x4;
+    public final static int ADV_TLM_CAPABILITY = 0x8;
+    public final static int ADV_URL_CAPABILITY = 0x10;
+    public final static int ADV_SYSTEM_CAPABILITY = 0x20;
+
     //configurable parameters
     public final static String  JSON_FIELD_DEV_NAME = "name";
     public final static String  JSON_FIELD_PWD = "pwd";
@@ -117,35 +125,35 @@ public class KBCfgCommon extends KBCfgBase{
     public boolean isSupportIBeacon()
     {
         int nAdvCapability = (basicCapability >> 8);
-        return ((nAdvCapability >> (KBAdvType.IBeacon -1)) & 0x1) > 0;
+        return (nAdvCapability & ADV_IBEACON_CAPABILITY) > 0;
     }
 
     //is the device support URL
     public boolean isSupportEddyURL()
     {
         int nAdvCapability = (basicCapability >> 8);
-        return ((nAdvCapability >> (KBAdvType.EddyURL -1)) & 0x1) > 0;
+        return (nAdvCapability & ADV_URL_CAPABILITY) > 0;
     }
 
     //is the device support TLM
     public boolean isSupportEddyTLM()
     {
         int nAdvCapability = (basicCapability >> 8);
-        return ((nAdvCapability >> (KBAdvType.EddyTLM -1)) & 0x1) > 0;
+        return (nAdvCapability & ADV_TLM_CAPABILITY) > 0;
     }
 
     //is the device support UID
     public boolean isSupportEddyUID()
     {
-        int nAdvCapibility = (basicCapability >> 8);
-        return ((nAdvCapibility >> (KBAdvType.EddyUID -1)) & 0x1) > 0;
+        int nAdvCapability = (basicCapability >> 8);
+        return (nAdvCapability & ADV_UID_CAPABILITY) > 0;
     }
 
     //support kb sensor
     public boolean isSupportKBSensor()
     {
-        int nAdvCapibility = (basicCapability >> 8);
-        return ((nAdvCapibility >> (KBAdvType.Sensor -1)) & 0x1) > 0;
+        int nAdvCapability = (basicCapability >> 8);
+        return (nAdvCapability & ADV_KSENSOR_CAPABILITY) > 0;
     }
 
     //support BLE5 LongRange
